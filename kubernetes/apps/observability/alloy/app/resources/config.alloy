@@ -1,0 +1,136 @@
+// ---------------------------------------------------------------------------
+// Metrics -> Mimir
+// ---------------------------------------------------------------------------
+prometheus.remote_write "mimir" {
+  endpoint {
+    url = "http://mimir.observability.svc.cluster.local:9009/api/v1/push"
+  }
+  external_labels = {
+    cluster = "homelab",
+  }
+}
+
+// Everything that ships a ServiceMonitor or PodMonitor (most charts here do)
+prometheus.operator.servicemonitors "all" {
+  forward_to = [prometheus.remote_write.mimir.receiver]
+}
+
+prometheus.operator.podmonitors "all" {
+  forward_to = [prometheus.remote_write.mimir.receiver]
+}
+
+// Kubelet and cAdvisor (container CPU / memory)
+discovery.kubernetes "nodes" {
+  role = "node"
+}
+
+discovery.relabel "kubelet" {
+  targets = discovery.kubernetes.nodes.targets
+  rule {
+    source_labels = ["__meta_kubernetes_node_name"]
+    target_label  = "node"
+  }
+}
+
+prometheus.scrape "kubelet" {
+  job_name          = "kubelet"
+  targets           = discovery.relabel.kubelet.output
+  scheme            = "https"
+  bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+  tls_config {
+    insecure_skip_verify = true
+  }
+  forward_to = [prometheus.remote_write.mimir.receiver]
+}
+
+prometheus.scrape "cadvisor" {
+  job_name          = "cadvisor"
+  targets           = discovery.relabel.kubelet.output
+  metrics_path      = "/metrics/cadvisor"
+  scheme            = "https"
+  bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+  tls_config {
+    insecure_skip_verify = true
+  }
+  forward_to = [prometheus.remote_write.mimir.receiver]
+}
+
+// ---------------------------------------------------------------------------
+// Logs -> Loki
+// ---------------------------------------------------------------------------
+loki.write "loki" {
+  endpoint {
+    url = "http://loki.observability.svc.cluster.local:3100/loki/api/v1/push"
+  }
+  external_labels = {
+    cluster = "homelab",
+  }
+}
+
+discovery.kubernetes "pods" {
+  role = "pod"
+}
+
+discovery.relabel "pod_logs" {
+  targets = discovery.kubernetes.pods.targets
+  rule {
+    source_labels = ["__meta_kubernetes_namespace"]
+    target_label  = "namespace"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_name"]
+    target_label  = "pod"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_container_name"]
+    target_label  = "container"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+    target_label  = "app"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_node_name"]
+    target_label  = "node"
+  }
+}
+
+// Reads logs through the Kubernetes API, so Alloy needs no host access
+loki.source.kubernetes "pods" {
+  targets    = discovery.relabel.pod_logs.output
+  forward_to = [loki.write.loki.receiver]
+}
+
+loki.source.kubernetes_events "events" {
+  forward_to = [loki.write.loki.receiver]
+}
+
+// ---------------------------------------------------------------------------
+// Traces (OTLP) -> Tempo
+// ---------------------------------------------------------------------------
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+  output {
+    traces = [otelcol.processor.batch.default.input]
+  }
+}
+
+otelcol.processor.batch "default" {
+  output {
+    traces = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "tempo.observability.svc.cluster.local:4317"
+    tls {
+      insecure = true
+    }
+  }
+}

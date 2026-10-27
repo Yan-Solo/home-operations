@@ -1,0 +1,77 @@
+---
+# Shared by bootstrap/helmfile.yaml and the Flux HelmRelease.
+fullnameOverride: coredns
+k8sAppLabelOverride: kube-dns
+replicaCount: 2
+serviceAccount:
+  create: true
+service:
+  name: kube-dns
+  clusterIP: 10.43.0.10 # kubelet's clusterDNS for the 10.43.0.0/16 service network
+priorityClassName: system-cluster-critical
+prometheus:
+  service:
+    enabled: true
+  monitor:
+    enabled: true
+servers:
+  # Inside the cluster, sunnyvale.be resolves straight to the Envoy Gateway IP.
+  # Pods (Grafana, Envoy's OIDC filter, Flux UI, Gatus...) then reach
+  # id.sunnyvale.be and friends without relying on the Telenet modem's NAT loopback.
+  - zones:
+      - zone: sunnyvale.be.
+        scheme: dns://
+    port: 53
+    plugins:
+      - name: errors
+      - name: template
+        parameters: IN A sunnyvale.be
+        configBlock: |-
+          answer "{{ .Name }} 60 IN A 192.168.0.60"
+      - name: template
+        parameters: IN AAAA sunnyvale.be
+        configBlock: |-
+          rcode NOERROR
+      - name: cache
+        parameters: 30
+  - zones:
+      - zone: .
+        scheme: dns://
+        use_tcp: true
+    port: 53
+    plugins:
+      - name: errors
+      - name: health
+        configBlock: |-
+          lameduck 5s
+      - name: ready
+      - name: log
+        configBlock: |-
+          class error
+      - name: prometheus
+        parameters: 0.0.0.0:9153
+      - name: kubernetes
+        parameters: cluster.local in-addr.arpa ip6.arpa
+        configBlock: |-
+          pods insecure
+          fallthrough in-addr.arpa ip6.arpa
+      - name: forward
+        parameters: . /etc/resolv.conf
+      - name: cache
+        parameters: 30
+      - name: loop
+      - name: reload
+      - name: loadbalance
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: node-role.kubernetes.io/control-plane
+              operator: Exists
+tolerations:
+  - key: CriticalAddonsOnly
+    operator: Exists
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule

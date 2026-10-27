@@ -1,0 +1,29 @@
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: envoy
+  namespace: default
+spec:
+  logging:
+    level:
+      default: warn
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyDeployment:
+        replicas: 1
+        container:
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+      envoyService:
+        # Keep the real client IP (Pocket ID audit log, Home Assistant, ...)
+        externalTrafficPolicy: Local
+        annotations:
+          # CHANGEME if your modem forwards 80/443 to a different IP than this
+          lbipam.cilium.io/ips: 192.168.0.60
+  telemetry:
+    metrics:
+      prometheus: {}

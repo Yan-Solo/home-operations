@@ -1,0 +1,49 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: [
+    "github>home-operations/renovate-presets#10.0.1",
+    "github>home-operations/renovate-presets//apps/cnpg.json5#10.0.1",
+    ":semanticCommits",
+    ":timezone(Europe/Brussels)",
+  ],
+  dependencyDashboardTitle: "Renovate Dashboard",
+  ignorePaths: ["**/archive/**"],
+  flux: {
+    managerFilePatterns: ["/kubernetes/.+\\.ya?ml$/"],
+  },
+  "helm-values": {
+    managerFilePatterns: ["/kubernetes/.+/helm/values\\.ya?ml$/", "/kubernetes/.+/helmrelease\\.ya?ml$/"],
+  },
+  helmfile: {
+    managerFilePatterns: ["/bootstrap/helmfile\\.ya?ml$/"],
+  },
+  kubernetes: {
+    managerFilePatterns: ["/kubernetes/.+\\.ya?ml$/"],
+  },
+  packageRules: [
+    {
+      description: "Automerge patch and minor updates once CI is green",
+      matchUpdateTypes: ["minor", "patch", "digest"],
+      matchCurrentVersion: "!/^0/",
+      automerge: true,
+      automergeType: "pr",
+      ignoreTests: false,
+    },
+    {
+      description: "Never automerge Talos or Kubernetes - they need `task talos:upgrade-*`",
+      matchPackageNames: ["/siderolabs/"],
+      automerge: false,
+    },
+    {
+      description: "Group Flux operator and instance charts",
+      matchPackageNames: ["/flux-operator/", "/flux-instance/"],
+      groupName: "flux-operator",
+    },
+    {
+      description: "Immich: server and machine-learning move together",
+      matchPackageNames: ["/immich/"],
+      groupName: "immich",
+      automerge: false,
+    },
+  ],
+}

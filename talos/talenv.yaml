@@ -1,0 +1,6 @@
+# Versions live here so Renovate can bump them. Apply bumps with
+# `task talos:upgrade-node` and `task talos:upgrade-k8s` (never automerged).
+# renovate: datasource=docker depName=ghcr.io/siderolabs/installer
+talosVersion: v1.14.5
+# renovate: datasource=docker depName=ghcr.io/siderolabs/kubelet
+kubernetesVersion: v1.37.1

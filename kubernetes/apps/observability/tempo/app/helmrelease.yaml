@@ -1,0 +1,40 @@
+---
+# Traces. Send OTLP to alloy.observability.svc:4317 (gRPC) or :4318 (HTTP),
+# e.g. from barpath while you develop it.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: tempo
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: tempo
+  interval: 1h
+  values:
+    fullnameOverride: tempo
+    tempo:
+      reportingEnabled: false
+      retention: 168h
+      storage:
+        trace:
+          backend: local
+          local:
+            path: /var/tempo/traces
+          wal:
+            path: /var/tempo/wal
+      metricsGenerator:
+        enabled: true
+        remoteWriteUrl: http://mimir.observability.svc.cluster.local:9009/api/v1/push
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+              endpoint: 0.0.0.0:4317
+            http:
+              endpoint: 0.0.0.0:4318
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClassName: local-ssd
+    serviceMonitor:
+      enabled: true

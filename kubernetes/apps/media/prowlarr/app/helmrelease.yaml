@@ -1,0 +1,81 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: prowlarr
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: prowlarr
+  interval: 1h
+  values:
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 568
+        runAsGroup: 568
+        fsGroup: 568
+        fsGroupChangePolicy: OnRootMismatch
+      dnsConfig:
+        nameservers: ["8.8.8.8"]
+    controllers:
+      prowlarr:
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: ghcr.io/home-operations/prowlarr
+              tag: 2.6.6.5717
+            env:
+              TZ: Europe/Brussels
+              PROWLARR__APP__INSTANCENAME: Prowlarr
+              PROWLARR__AUTH__METHOD: External
+              PROWLARR__AUTH__REQUIRED: DisabledForLocalAddresses
+              PROWLARR__LOG__LEVEL: info
+              PROWLARR__SERVER__PORT: &port 9696
+            probes:
+              liveness: &probe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /ping
+                    port: *port
+              readiness: *probe
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop: ["ALL"]
+            resources:
+              requests:
+                cpu: 10m
+                memory: 256Mi
+              limits:
+                memory: 1Gi
+    service:
+      prowlarr:
+        controller: prowlarr
+        ports:
+          http:
+            port: 9696
+            targetPort: *port
+    route:
+      prowlarr:
+        hostnames: ["prowlarr.sunnyvale.be"]
+        parentRefs:
+          - name: envoy-gateway
+            namespace: default
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: prowlarr
+                port: 9696
+    persistence:
+      config:
+        existingClaim: prowlarr
+        globalMounts:
+          - path: /config
+      tmp:
+        type: emptyDir
+

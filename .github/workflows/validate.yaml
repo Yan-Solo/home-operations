@@ -1,0 +1,46 @@
+---
+# Renders every Flux Kustomization + HelmRelease offline and validates the result.
+# Needs no access to the cluster: Flux *pulls* from GitHub, CI only checks the repo.
+name: Validate
+
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  flux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: jdx/mise-action@v3
+        with:
+          install_args: "aqua:home-operations/flate aqua:yannh/kubeconform"
+
+      - name: Render (flate test)
+        run: flate test all --path .
+
+      - name: Validate schemas (kubeconform)
+        run: |
+          flate build all --path . > rendered.yaml
+          kubeconform -strict -summary -ignore-missing-schemas \
+            -kubernetes-version 1.37.0 \
+            -schema-location default \
+            -schema-location 'https://k8s-schemas.home-operations.com/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+            rendered.yaml
+
+      - name: Diff against main
+        if: github.event_name == 'pull_request'
+        run: |
+          {
+            echo '### Rendered changes'
+            echo '```diff'
+            flate diff all --path . --base origin/${{ github.base_ref }} -o diff || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

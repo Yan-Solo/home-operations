@@ -1,0 +1,17 @@
+---
+# The chart lives in the barpath repo itself. Like Argo's targetRevision HEAD,
+# every new commit on main gets deployed.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: barpath-platform
+spec:
+  interval: 5m
+  url: https://github.com/barpath-coach/platform.git
+  ref:
+    branch: main # CHANGEME if the default branch is called differently
+  secretRef:
+    name: barpath-github-secret
+  ignore: |
+    /*
+    !/deploy/helm/platform

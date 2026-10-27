@@ -1,0 +1,49 @@
+---
+# Kept the same name/namespace/listeners as before, so the barpath chart's
+# HTTPRoutes (parentRef envoy-gateway/default/https) keep working unchanged.
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: envoy-gateway
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+  parametersRef:
+    group: gateway.envoyproxy.io
+    kind: EnvoyProxy
+    name: envoy
+    namespace: default
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: envoy-gateway
+  namespace: default
+  annotations:
+    # Read by gatus-sidecar: every HTTPRoute on this gateway gets an uptime check.
+    # Anything below 400 counts as up (OIDC-protected apps answer with a redirect).
+    gatus.home-operations.com/endpoint: |
+      conditions: ["[STATUS] < 400"]
+      client:
+        ignore-redirect: true
+spec:
+  gatewayClassName: envoy-gateway
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: "*.sunnyvale.be"
+      allowedRoutes:
+        namespaces:
+          from: Same
+    - name: https
+      protocol: HTTPS
+      port: 443
+      hostname: "*.sunnyvale.be"
+      allowedRoutes:
+        namespaces:
+          from: All
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: wildcard-sunnyvale-be-tls

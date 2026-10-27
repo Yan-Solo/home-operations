@@ -1,0 +1,19 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: metrics-server
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: metrics-server
+  interval: 1h
+  values:
+    args:
+      # Talos kubelets use self-signed serving certificates
+      - --kubelet-insecure-tls
+      - --kubelet-preferred-address-types=InternalIP
+    metrics:
+      enabled: true
+    serviceMonitor:
+      enabled: true

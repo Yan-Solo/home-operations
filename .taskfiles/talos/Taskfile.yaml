@@ -1,0 +1,88 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: "3"
+
+vars:
+  TALSECRET: "{{.TALOS_DIR}}/talsecret.yaml"
+  BWS_SECRET_KEY: talos-secrets
+
+tasks:
+  disks:
+    desc: "List disks and filesystems of a node booted from the Talos ISO (task talos:disks IP=192.168.0.x)"
+    requires:
+      vars: [IP]
+    cmds:
+      - talosctl get disks --insecure --nodes {{.IP}}
+      - talosctl get discoveredvolumes --insecure --nodes {{.IP}}
+
+  secrets:init:
+    desc: Generate the Talos cluster secrets once and store them in Bitwarden Secrets Manager
+    requires:
+      vars: [BWS_PROJECT_ID]
+    preconditions:
+      - sh: test -n "$BWS_ACCESS_TOKEN"
+        msg: BWS_ACCESS_TOKEN is not set (see .env.example)
+      - sh: test ! -f {{.TALSECRET}}
+        msg: "{{.TALSECRET}} already exists"
+    cmds:
+      - talhelper gensecret > {{.TALSECRET}}
+      - bws secret create {{.BWS_SECRET_KEY}} "$(cat {{.TALSECRET}})" {{.BWS_PROJECT_ID}} --output none
+
+  secrets:pull:
+    desc: Fetch the Talos cluster secrets from Bitwarden Secrets Manager
+    requires:
+      vars: [BWS_PROJECT_ID]
+    preconditions:
+      - sh: test -n "$BWS_ACCESS_TOKEN"
+        msg: BWS_ACCESS_TOKEN is not set (see .env.example)
+    cmds:
+      - bws secret list {{.BWS_PROJECT_ID}} --output json | jq -er '.[] | select(.key == "{{.BWS_SECRET_KEY}}") | .value' > {{.TALSECRET}}
+    status:
+      - test -f {{.TALSECRET}}
+
+  genconfig:
+    desc: Render the Talos machine configs into talos/clusterconfig
+    dir: "{{.TALOS_DIR}}"
+    deps: [secrets:pull]
+    preconditions:
+      - sh: "! grep -q CHANGEME- talconfig.yaml patches/node/volumes.yaml"
+        msg: Fill in every CHANGEME in talos/talconfig.yaml and talos/patches/node/volumes.yaml first
+    cmd: talhelper genconfig --secret-file {{.TALSECRET}}
+
+  install:
+    desc: First install - apply the config to a node booted from the ISO (task talos:install IP=<dhcp-ip>)
+    dir: "{{.TALOS_DIR}}"
+    requires:
+      vars: [IP]
+    deps: [genconfig]
+    cmd: talosctl apply-config --insecure --nodes {{.IP}} --file clusterconfig/homelab-homelab-01.yaml
+
+  bootstrap:
+    desc: Bootstrap etcd and fetch the kubeconfig (run once, after `talos:install` and the reboot)
+    dir: "{{.TALOS_DIR}}"
+    cmds:
+      - until talhelper gencommand bootstrap | bash; do sleep 10; done
+      - until talhelper gencommand kubeconfig --extra-flags "{{.ROOT_DIR}} --force" | bash; do sleep 10; done
+
+  apply:
+    desc: "Apply config changes. Defaults to --mode=try: Talos rolls back after 1 minute unless you confirm"
+    dir: "{{.TALOS_DIR}}"
+    deps: [genconfig]
+    vars:
+      MODE: '{{.MODE | default "try"}}'
+    cmd: talhelper gencommand apply --extra-flags "--mode={{.MODE}}" | bash
+
+  upgrade-node:
+    desc: Upgrade Talos to the version in talenv.yaml (reboots the node)
+    dir: "{{.TALOS_DIR}}"
+    deps: [genconfig]
+    cmd: talhelper gencommand upgrade --extra-flags "--timeout=10m" | bash
+
+  upgrade-k8s:
+    desc: Upgrade Kubernetes to the version in talenv.yaml
+    dir: "{{.TALOS_DIR}}"
+    deps: [genconfig]
+    cmd: talhelper gencommand upgrade-k8s | bash
+
+  dashboard:
+    desc: Open the Talos live dashboard for the node (your replacement for SSH + htop)
+    cmd: talosctl dashboard --nodes 192.168.0.50

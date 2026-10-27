@@ -1,0 +1,65 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/budimanjojo/talhelper/master/pkg/config/schemas/talconfig.json
+#
+# Everything marked CHANGEME must be filled in before `task talos:genconfig`.
+# Boot the Talos ISO and run `task talos:disks IP=<dhcp-ip>` to find the disk serials and the HDD UUID.
+clusterName: homelab
+talosVersion: "${talosVersion}"
+kubernetesVersion: "${kubernetesVersion}"
+
+# CHANGEME: a free static IP on your Telenet LAN, outside the modem's DHCP range
+# and outside the Cilium LoadBalancer pool (192.168.0.60-70).
+endpoint: https://192.168.0.50:6443
+additionalApiServerCertSans: &sans
+  - 127.0.0.1
+  - 192.168.0.50
+additionalMachineCertSans: *sans
+
+clusterPodNets: ["10.42.0.0/16"]
+clusterSvcNets: ["10.43.0.0/16"]
+
+# Cilium is installed during bootstrap (see bootstrap/helmfile.yaml)
+cniConfig:
+  name: none
+
+# Single node: it is both control plane and worker
+allowSchedulingOnControlPlanes: true
+
+nodes:
+  - hostname: homelab-01
+    ipAddress: 192.168.0.50
+    controlPlane: true
+    installDiskSelector:
+      # CHANGEME: serial of the disk Talos installs to (wiped on install!)
+      serial: CHANGEME-OS-DISK-SERIAL
+    networkInterfaces:
+      - deviceSelector:
+          physical: true
+        dhcp: false
+        addresses:
+          - 192.168.0.50/24
+        routes:
+          - network: 0.0.0.0/0
+            gateway: 192.168.0.1 # Telenet modem
+    nameservers:
+      - 192.168.0.1
+      - 1.1.1.1
+    nodeLabels:
+      # Lets the Intel GPU plugin schedule without node-feature-discovery
+      intel.feature.node.kubernetes.io/gpu: "true"
+    schematic:
+      customization:
+        systemExtensions:
+          officialExtensions:
+            - siderolabs/i915 # iGPU (HD 530) for Jellyfin QuickSync
+            - siderolabs/intel-ucode
+    patches:
+      - "@./patches/node/volumes.yaml"
+
+patches:
+  - "@./patches/global/machine-kubelet.yaml"
+  - "@./patches/global/machine-network.yaml"
+  - "@./patches/global/machine-sysctls.yaml"
+
+controlPlane:
+  patches:
+    - "@./patches/controller/cluster.yaml"

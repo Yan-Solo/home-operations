@@ -1,0 +1,24 @@
+# Cilium replaces kube-proxy
+apiVersion: v1alpha1
+kind: KubeProxyConfig
+enabled: false
+---
+# Expose metrics to Alloy
+apiVersion: v1alpha1
+kind: KubeControllerManagerConfig
+extraArgs:
+  bind-address: 0.0.0.0
+---
+apiVersion: v1alpha1
+kind: KubeSchedulerConfig
+extraArgs:
+  bind-address: 0.0.0.0
+---
+machine: {}
+cluster:
+  # CoreDNS is deployed with Helm so we can add the sunnyvale.be override (see kubernetes/apps/kube-system/coredns)
+  coreDNS:
+    disabled: true
+  etcd:
+    extraArgs:
+      listen-metrics-urls: http://0.0.0.0:2381

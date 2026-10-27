@@ -1,0 +1,3 @@
+# flate only needs the Kubernetes tree
+/*
+!/kubernetes/

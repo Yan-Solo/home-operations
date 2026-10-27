@@ -1,0 +1,19 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: barpath
+spec:
+  # "platform" keeps resource names short (platform-auth, platform-dashboard, ...)
+  releaseName: platform
+  chart:
+    spec:
+      chart: ./deploy/helm/platform
+      reconcileStrategy: Revision
+      sourceRef:
+        kind: GitRepository
+        name: barpath-platform
+      valuesFiles:
+        - ./deploy/helm/platform/values.yaml
+        - ./deploy/helm/platform/values-prod.yaml
+  interval: 1h

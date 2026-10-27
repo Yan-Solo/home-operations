@@ -1,0 +1,15 @@
+---
+# Gives an app a PVC named ${APP} on the SSD plus a nightly restic backup to B2.
+# Variables (set in the app's ks.yaml postBuild.substitute):
+#   APP                      required
+#   VOLSYNC_CAPACITY         default 1Gi
+#   VOLSYNC_PUID/PGID        uid/gid the backup runs as - must be able to read the files (default 568)
+#   VOLSYNC_SCHEDULE         default "0 3 * * *"
+# Also needs `substituteFrom: cluster-settings` for S3_ENDPOINT / S3_BUCKET.
+# Restore with `task volsync:restore APP=<app> NS=<namespace>`.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+resources:
+  - ./externalsecret.yaml
+  - ./pvc.yaml
+  - ./replicationsource.yaml

@@ -1,0 +1,20 @@
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: ${APP}-oidc
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: ${APP}
+  oidc:
+    provider:
+      issuer: https://id.sunnyvale.be
+    clientIDRef:
+      name: ${APP}-oidc-secret
+    clientSecret:
+      name: ${APP}-oidc-secret
+    scopes: ["openid", "profile", "email", "groups"]
+    logoutPath: /oauth2/logout
+    refreshToken: true

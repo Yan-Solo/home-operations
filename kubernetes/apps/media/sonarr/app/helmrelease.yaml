@@ -1,0 +1,90 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: sonarr
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: sonarr
+  interval: 1h
+  values:
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 568
+        runAsGroup: 568
+        fsGroup: 568
+        fsGroupChangePolicy: OnRootMismatch
+    controllers:
+      sonarr:
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: ghcr.io/home-operations/sonarr
+              tag: 5.0.0.2800
+            env:
+              TZ: Europe/Brussels
+              SONARR__APP__INSTANCENAME: Sonarr
+              SONARR__AUTH__METHOD: External
+              SONARR__AUTH__REQUIRED: DisabledForLocalAddresses
+              SONARR__LOG__LEVEL: info
+              SONARR__SERVER__PORT: &port 8989
+            probes:
+              liveness: &probe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /ping
+                    port: *port
+              readiness: *probe
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop: ["ALL"]
+            resources:
+              requests:
+                cpu: 10m
+                memory: 256Mi
+              limits:
+                memory: 1Gi
+    service:
+      sonarr:
+        controller: sonarr
+        ports:
+          http:
+            port: 8989
+            targetPort: *port
+    route:
+      sonarr:
+        hostnames: ["sonarr.sunnyvale.be"]
+        parentRefs:
+          - name: envoy-gateway
+            namespace: default
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: sonarr
+                port: 8989
+    persistence:
+      config:
+        existingClaim: sonarr
+        globalMounts:
+          - path: /config
+      tmp:
+        type: emptyDir
+      media:
+        existingClaim: media
+        globalMounts:
+          - path: /media
+      sab-downloads:
+        existingClaim: sab-downloads
+        globalMounts:
+          - path: /downloads
+      qbittorrent-downloads:
+        existingClaim: qbittorrent-downloads
+        globalMounts:
+          - path: /qbittorrent-downloads

@@ -1,0 +1,25 @@
+---
+apiVersion: volsync.backube/v1alpha1
+kind: ReplicationSource
+metadata:
+  name: ${APP}
+spec:
+  sourcePVC: ${APP}
+  trigger:
+    schedule: "${VOLSYNC_SCHEDULE:=0 3 * * *}"
+  restic:
+    # Local hostpath volumes can't be snapshotted, so the backup reads the live PVC.
+    copyMethod: Direct
+    repository: ${APP}-volsync-secret
+    pruneIntervalDays: 7
+    retain:
+      daily: 7
+      weekly: 4
+      monthly: 3
+    cacheCapacity: 2Gi
+    cacheStorageClassName: local-ssd
+    cacheAccessModes: ["ReadWriteOnce"]
+    moverSecurityContext:
+      runAsUser: ${VOLSYNC_PUID:=568}
+      runAsGroup: ${VOLSYNC_PGID:=568}
+      fsGroup: ${VOLSYNC_PGID:=568}

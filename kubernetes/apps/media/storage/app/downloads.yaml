@@ -1,0 +1,23 @@
+---
+# Download clients write here (SSD); the *arr apps move finished files to /media.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sab-downloads
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 500Gi
+  storageClassName: local-ssd
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qbittorrent-downloads
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 500Gi
+  storageClassName: local-ssd

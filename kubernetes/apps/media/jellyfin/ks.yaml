@@ -1,0 +1,29 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: jellyfin
+  namespace: flux-system
+spec:
+  components:
+    - ../../../../components/volsync
+  dependsOn:
+    - name: media-storage
+    - name: volsync
+    - name: external-secrets-stores
+    - name: envoy-gateway-config
+    - name: intel-gpu-plugin
+  interval: 1h
+  path: ./kubernetes/apps/media/jellyfin/app
+  postBuild:
+    substitute:
+      APP: jellyfin
+      VOLSYNC_CAPACITY: 10Gi
+    substituteFrom:
+      - kind: ConfigMap
+        name: cluster-settings
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  targetNamespace: media

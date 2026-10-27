@@ -1,0 +1,18 @@
+---
+# Shared by bootstrap/helmfile.yaml (which turns `web` off) and the Flux HelmRelease.
+web:
+  enabled: true
+  # OIDC config for the Flux web UI, rendered by ./externalsecret.yaml
+  configSecretName: flux-web-config
+  httpRoute:
+    enabled: true
+    parentRefs:
+      - name: envoy-gateway
+        namespace: default
+        sectionName: https
+    hostnames:
+      - flux.sunnyvale.be
+  networkPolicy:
+    create: false
+serviceMonitor:
+  create: true

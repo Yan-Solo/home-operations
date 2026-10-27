@@ -1,0 +1,95 @@
+---
+# Shared by bootstrap/helmfile.yaml and the Flux HelmRelease.
+# Talos specifics: https://docs.siderolabs.com/kubernetes-guides/cni/deploying-cilium
+autoDirectNodeRoutes: true
+bandwidthManager:
+  enabled: true
+  bbr: true
+bpf:
+  masquerade: true
+cgroup:
+  automount:
+    enabled: false
+  hostRoot: /sys/fs/cgroup
+cluster:
+  id: 1
+  name: homelab
+dashboards:
+  enabled: true
+endpointRoutes:
+  enabled: true
+envoy:
+  enabled: false # no Cilium L7/ingress features in use; Envoy Gateway handles ingress
+hubble:
+  enabled: true
+  metrics:
+    enabled:
+      - dns:query
+      - drop
+      - tcp
+      - flow
+      - port-distribution
+      - icmp
+      - http
+    serviceMonitor:
+      enabled: true
+    dashboards:
+      enabled: true
+  relay:
+    enabled: true
+    rollOutPods: true
+  ui:
+    enabled: true
+    rollOutPods: true
+ipam:
+  mode: kubernetes
+ipv4NativeRoutingCIDR: 10.42.0.0/16
+# KubePrism, Talos' local API server proxy
+k8sServiceHost: localhost
+k8sServicePort: 7445
+k8sClientRateLimit:
+  qps: 50
+  burst: 100
+kubeProxyReplacement: true
+kubeProxyReplacementHealthzBindAddr: 0.0.0.0:10256
+# Replaces MetalLB: answers ARP for LoadBalancer IPs (see ../config)
+l2announcements:
+  enabled: true
+loadBalancer:
+  algorithm: maglev
+operator:
+  replicas: 1
+  rollOutPods: true
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+  dashboards:
+    enabled: true
+prometheus:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    trustCRDsExist: true
+rollOutCiliumPods: true
+routingMode: native
+securityContext:
+  capabilities:
+    ciliumAgent:
+      - CHOWN
+      - KILL
+      - NET_ADMIN
+      - NET_RAW
+      - IPC_LOCK
+      - SYS_ADMIN
+      - SYS_RESOURCE
+      - PERFMON
+      - BPF
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    cleanCiliumState:
+      - NET_ADMIN
+      - SYS_ADMIN
+      - SYS_RESOURCE
