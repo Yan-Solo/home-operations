@@ -14,7 +14,7 @@ instance:
   sync:
     kind: GitRepository
     # CHANGEME if you push this repo somewhere else
-    url: https://github.com/Yan-Solo/homelab.git
+    url: https://github.com/Yan-Solo/home-operations.git
     ref: refs/heads/main
     path: kubernetes/flux/cluster
     interval: 1m
