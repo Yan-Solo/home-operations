@@ -164,7 +164,7 @@ flux get ks -A --watch
 ## Day 2
 
 - **Updates**: Renovate opens PRs, CI renders them, and minor/patch versions automerge. Talos and Kubernetes are never automerged: merge the PR, then `task talos:upgrade-node` or `task talos:upgrade-k8s`.
-- **Config changes to the node**: edit `talos/`, then `task talos:apply`. It runs in `try` mode, so a change that cuts off the network rolls itself back after a minute instead of sending you to the garage.
+- **Config changes to the node**: edit `talos/`, check with `task talos:diff`, then `task talos:apply`. For a risky network change, first run `task talos:apply MODE=try`: it applies the change for one minute and then always rolls back, so a mistake doesn't send you to the garage. If the node stayed reachable, run `task talos:apply` to keep it.
 - **See what the node is doing**: `task talos:dashboard`, or Grafana → *Node Exporter Full*.
 - **Restore an app**: `task volsync:restore APP=home-assistant NS=home-automation`. Add `PREVIOUS=1` (skip the newest snapshot) or `AS_OF=<RFC 3339 time>` to go further back; `task --summary volsync:restore` explains both.
 - **Render locally like CI**: `task validate`.

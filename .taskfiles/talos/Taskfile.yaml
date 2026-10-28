@@ -63,12 +63,18 @@ tasks:
       - until talhelper gencommand bootstrap | bash; do sleep 10; done
       - until talhelper gencommand kubeconfig --extra-flags "{{.ROOT_DIR}} --force" | bash; do sleep 10; done
 
+  diff:
+    desc: Show what `talos:apply` would change on the node, without applying it
+    dir: "{{.TALOS_DIR}}"
+    deps: [genconfig]
+    cmd: talhelper gencommand apply --extra-flags "--dry-run" | bash
+
   apply:
-    desc: "Apply config changes. Defaults to --mode=try: Talos rolls back after 1 minute unless you confirm"
+    desc: "Apply config changes. MODE=try applies them for 1 minute and then always rolls back: use it to test a risky network change"
     dir: "{{.TALOS_DIR}}"
     deps: [genconfig]
     vars:
-      MODE: '{{.MODE | default "try"}}'
+      MODE: '{{.MODE | default "auto"}}'
     cmd: talhelper gencommand apply --extra-flags "--mode={{.MODE}}" | bash
 
   upgrade-node:
