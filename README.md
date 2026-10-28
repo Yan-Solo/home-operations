@@ -49,13 +49,13 @@ task                           # list all tasks
 
 **Bitwarden Secrets Manager** (free plan, separate from your password vault):
 1. Bitwarden web vault → product switcher → **Secrets Manager** → create a free organization.
-2. Create a project `homelab`, and two machine accounts with *read & write* access to it: `cluster` and `workstation`.
+2. Create a project `homelab` and two machine accounts with access to it: `workstation` with *read & write* (it stores the Talos secrets), and `cluster` with *read* only (External Secrets only reads).
 3. Create an access token for each. Put them in `.env` (`BWS_CLUSTER_ACCESS_TOKEN`, `BWS_ACCESS_TOKEN`) together with `BWS_PROJECT_ID`.
 4. Put the organization ID and project ID in `kubernetes/flux/cluster/cluster-settings.yaml`. If your account is on bitwarden.eu, change the two URLs there as well.
 
-**Backblaze B2**: create a private bucket and an application key limited to that bucket. Put the bucket name and its S3 endpoint in `cluster-settings.yaml`.
+**Backblaze B2**: create a private bucket and an application key limited to that bucket. Set the bucket's lifecycle rule to *Keep only the last version of the file*: B2 keeps deleted files as hidden versions by default, so the snapshots restic prunes and the WAL files CNPG expires would stay billed forever. Put the bucket name and its S3 endpoint in `cluster-settings.yaml`.
 
-**Cloudflare**: create an API token from the *Edit zone DNS* template, scoped to `sunnyvale.be`. It replaces the global API key you used before.
+**Cloudflare**: create an API token from the *Edit zone DNS* template, add the permission *Zone → Zone → Read*, and scope it to `sunnyvale.be`. It replaces the global API key you used before.
 
 **GitHub**: push this repo to `github.com/Yan-Solo/home-operations`, or change `sync.url` in `kubernetes/apps/flux-system/flux-instance/app/helm/values.yaml`. Install the [Renovate app](https://github.com/apps/renovate) on it. For barpath, create a fine-grained token with read-only *Contents* access to `barpath-coach/platform`.
 
