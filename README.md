@@ -57,7 +57,7 @@ task                           # list all tasks
 
 **Cloudflare**: create an API token from the *Edit zone DNS* template, add the permission *Zone → Zone → Read*, and scope it to `sunnyvale.be`. It replaces the global API key you used before.
 
-**GitHub**: push this repo to `github.com/Yan-Solo/home-operations`, or change `sync.url` in `kubernetes/apps/flux-system/flux-instance/app/helm/values.yaml`. Install the [Renovate app](https://github.com/apps/renovate) on it. For barpath, create a fine-grained token with read-only *Contents* access to `barpath-coach/platform`.
+**GitHub**: push this repo to `github.com/Yan-Solo/home-operations`, or change `sync.url` in `kubernetes/apps/flux-system/flux-instance/app/helm/values.yaml`. **Make the repo public before `task bootstrap:apps`**: Flux pulls it over HTTPS without credentials (nothing secret is committed; secrets live in Bitwarden). Install the [Renovate app](https://github.com/apps/renovate) on it. For barpath, create a fine-grained token with read-only *Contents* access to `barpath-coach/platform`.
 
 ### 2. Secrets in Bitwarden Secrets Manager
 
