@@ -43,9 +43,6 @@ nodes:
     nameservers:
       - 192.168.0.1
       - 1.1.1.1
-    nodeLabels:
-      # Lets the Intel GPU plugin schedule without node-feature-discovery
-      intel.feature.node.kubernetes.io/gpu: "true"
     schematic:
       customization:
         systemExtensions:
@@ -57,6 +54,7 @@ nodes:
 
 patches:
   - "@./patches/global/machine-kubelet.yaml"
+  - "@./patches/global/machine-logging.yaml"
   - "@./patches/global/machine-network.yaml"
   - "@./patches/global/machine-sysctls.yaml"
 

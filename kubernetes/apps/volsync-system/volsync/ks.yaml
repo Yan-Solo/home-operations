@@ -6,7 +6,6 @@ metadata:
   namespace: flux-system
 spec:
   dependsOn:
-    - name: snapshot-controller
     - name: prometheus-operator-crds
   interval: 1h
   path: ./kubernetes/apps/volsync-system/volsync/app

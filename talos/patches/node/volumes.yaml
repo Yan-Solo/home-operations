@@ -1,20 +1,14 @@
-# The OS disk only needs room for images, logs and etcd. If Talos is installed on
-# the same SSD you use for app data, keep this cap so the `ssd` volume below can
-# take the rest. If the OS has its own disk, you can delete this document.
-apiVersion: v1alpha1
-kind: VolumeConfig
-name: EPHEMERAL
-provisioning:
-  maxSize: 100GiB
----
-# App data (configs, databases, download folders). Formatted by Talos on first boot.
-# Mounted at /var/mnt/ssd and used by the `local-ssd` StorageClass.
+# Disks: Talos itself lives on the OS SSD (installDiskSelector in talconfig.yaml), which it
+# uses whole for images, logs and etcd. The two data disks are below.
+
+# The storage SSD: app data (configs, databases, download folders). Formatted by Talos on
+# first boot. Mounted at /var/mnt/ssd and used by the `local-ssd` StorageClass.
 apiVersion: v1alpha1
 kind: UserVolumeConfig
 name: ssd
 provisioning:
   diskSelector:
-    # CHANGEME: serial of the SSD. If the OS is on this SSD too, use `system_disk` instead.
+    # CHANGEME: serial of the storage SSD (wiped on first boot!), not the OS SSD
     match: disk.serial == "CHANGEME-SSD-SERIAL"
   minSize: 50GiB
   grow: true

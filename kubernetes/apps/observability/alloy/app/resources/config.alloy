@@ -55,6 +55,86 @@ prometheus.scrape "cadvisor" {
   forward_to = [prometheus.remote_write.mimir.receiver]
 }
 
+// Talos control plane. Talos runs these as static pods on the node itself; the patch in
+// talos/patches/controller/cluster.yaml makes their metrics listen on the node IP.
+discovery.relabel "etcd" {
+  targets = discovery.kubernetes.nodes.targets
+  rule {
+    source_labels = ["__meta_kubernetes_node_labelpresent_node_role_kubernetes_io_control_plane"]
+    regex         = "true"
+    action        = "keep"
+  }
+  rule {
+    source_labels = ["__address__"]
+    regex         = "(.+):\\d+"
+    replacement   = "$1:2381"
+    target_label  = "__address__"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_node_name"]
+    target_label  = "node"
+  }
+}
+
+prometheus.scrape "etcd" {
+  job_name   = "etcd"
+  targets    = discovery.relabel.etcd.output
+  forward_to = [prometheus.remote_write.mimir.receiver]
+}
+
+discovery.relabel "kube_controller_manager" {
+  targets = discovery.relabel.etcd.output
+  rule {
+    source_labels = ["__address__"]
+    regex         = "(.+):\\d+"
+    replacement   = "$1:10257"
+    target_label  = "__address__"
+  }
+}
+
+prometheus.scrape "kube_controller_manager" {
+  job_name          = "kube-controller-manager"
+  targets           = discovery.relabel.kube_controller_manager.output
+  scheme            = "https"
+  bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+  tls_config {
+    insecure_skip_verify = true
+  }
+  forward_to = [prometheus.remote_write.mimir.receiver]
+}
+
+discovery.relabel "kube_scheduler" {
+  targets = discovery.relabel.etcd.output
+  rule {
+    source_labels = ["__address__"]
+    regex         = "(.+):\\d+"
+    replacement   = "$1:10259"
+    target_label  = "__address__"
+  }
+}
+
+prometheus.scrape "kube_scheduler" {
+  job_name          = "kube-scheduler"
+  targets           = discovery.relabel.kube_scheduler.output
+  scheme            = "https"
+  bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+  tls_config {
+    insecure_skip_verify = true
+  }
+  forward_to = [prometheus.remote_write.mimir.receiver]
+}
+
+prometheus.scrape "kube_apiserver" {
+  job_name          = "apiserver"
+  targets           = [{"__address__" = "kubernetes.default.svc:443"}]
+  scheme            = "https"
+  bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+  tls_config {
+    ca_file = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+  }
+  forward_to = [prometheus.remote_write.mimir.receiver]
+}
+
 // ---------------------------------------------------------------------------
 // Logs -> Loki
 // ---------------------------------------------------------------------------

@@ -8,6 +8,8 @@ metadata:
   name: barpath-postgresql
 spec:
   instances: 1
+  # Single instance: a PodDisruptionBudget would block draining the node for Talos upgrades
+  enablePDB: false
   imageName: ghcr.io/cloudnative-pg/postgresql:18-standard-trixie
   bootstrap:
     initdb:
@@ -21,6 +23,8 @@ spec:
       isWALArchiver: true
       parameters:
         barmanObjectName: barpath-postgresql
+        # Bump on every rebuild (README > Day 2 > Rebuild a database)
+        serverName: barpath-postgresql-v1
 ---
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore

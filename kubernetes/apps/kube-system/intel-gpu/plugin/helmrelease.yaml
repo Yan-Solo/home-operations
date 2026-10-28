@@ -14,7 +14,11 @@ spec:
   interval: 1h
   values:
     name: intel-gpu-plugin
-    # Jellyfin and Immich machine learning can share the iGPU
+    # How many pods may use the iGPU at the same time
     sharedDevNum: 3
-    # The node label is set in talos/talconfig.yaml instead of by node-feature-discovery
+    # The chart expects node-feature-discovery to label GPU nodes. With a single node
+    # that has an iGPU, run everywhere instead (null removes the chart's default label).
     nodeFeatureRule: false
+    nodeSelector:
+      intel.feature.node.kubernetes.io/gpu: null
+      kubernetes.io/arch: amd64

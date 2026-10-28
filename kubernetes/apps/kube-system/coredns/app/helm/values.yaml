@@ -16,7 +16,7 @@ prometheus:
     enabled: true
 servers:
   # Inside the cluster, sunnyvale.be resolves straight to the Envoy Gateway IP.
-  # Pods (Grafana, Envoy's OIDC filter, Flux UI, Gatus...) then reach
+  # Pods (Grafana, Envoy's OIDC filter, Flux UI...) then reach
   # id.sunnyvale.be and friends without relying on the Telenet modem's NAT loopback.
   - zones:
       - zone: sunnyvale.be.

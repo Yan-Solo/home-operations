@@ -4,5 +4,6 @@ kind: Kustomization
 resources:
   - ./envoyproxy.yaml
   - ./gateway.yaml
+  - ./backendtrafficpolicy.yaml
   - ./certificate.yaml
   - ./http-redirect.yaml

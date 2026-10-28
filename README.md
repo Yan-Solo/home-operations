@@ -14,7 +14,7 @@ Single-node Talos cluster in the garage, managed entirely from this repo with Fl
 | Storage | [OpenEBS LocalPV](https://openebs.io): `local-ssd` (default) and `local-hdd`; static volumes for the existing HDD data |
 | Databases | [CloudNativePG](https://cloudnative-pg.io) + barman-cloud plugin (WAL archiving to B2) |
 | Backups | [VolSync](https://volsync.readthedocs.io) (restic → Backblaze B2), nightly |
-| Observability | LGTM: Loki, Grafana, Tempo, Mimir; Alloy collects; Gatus for uptime |
+| Observability | LGTM: Loki, Grafana, Tempo, Mimir; Alloy collects (Fluent Bit forwards Talos' own logs) |
 | Updates | Renovate (presets from [home-operations](https://github.com/home-operations/renovate-presets)), CI renders every PR with [flate](https://github.com/home-operations/flate) |
 
 ## Layout
@@ -90,7 +90,7 @@ The HDD with your media and photos is **mounted as-is** by Talos and never forma
    ```sh
    lsblk -o NAME,SIZE,MODEL,SERIAL,FSTYPE,UUID,MOUNTPOINTS
    ```
-   You need the HDD **filesystem UUID** and the serials of the SSD and the OS disk. Fill in every `CHANGEME` in `talos/talconfig.yaml` and `talos/patches/node/volumes.yaml`. If Talos will share the SSD with app data, set the SSD selector to `system_disk` (see the comment in the file).
+   You need the serials of the **OS SSD** and the **storage SSD**, and the **filesystem UUID** of the HDD. Fill in every `CHANGEME` in `talos/talconfig.yaml` (OS SSD) and `talos/patches/node/volumes.yaml` (storage SSD, HDD). Both SSDs get wiped; the HDD doesn't.
 2. **Immich**: in Immich, *Administration → Jobs → Create job → Database dump*, then copy the newest `backups/immich-db-backup-*.sql.gz` from the pictures folder to your workstation.
    **Strongly recommended:** also copy the whole photo library to another disk. Until the new B2 backups have run, the HDD is the only copy.
 3. **Keep the Zigbee network**: copy the Zigbee2MQTT data folder (`configuration.yaml`, `coordinator_backup.json`, `database.db`) to your workstation. That way you don't have to re-pair every device. Do the same with the Home Assistant `/config` folder if you want to keep it:
@@ -125,6 +125,9 @@ Shut down, plug the HDD back in, and move the box to the garage. After it boots:
 
 ```sh
 talosctl -n 192.168.0.50 get volumestatus   # u-ssd and e-hdd must be "ready"
+# Talos only creates the `ssd` volume on free space. If u-ssd stays "waiting" because the
+# storage SSD still has its old partitions, wipe it (check the device name with `talosctl get disks`):
+#   talosctl -n 192.168.0.50 wipe disk sdX
 task talos:bootstrap                 # starts etcd, writes ./kubeconfig
 task bootstrap:apps                  # Cilium, CoreDNS, Flux; Flux deploys the rest
 flux get ks -A --watch
@@ -138,7 +141,7 @@ flux get ks -A --watch
    |---|---|---|
    | `flux` | `https://flux.sunnyvale.be/oauth2/callback` | `flux-oidc-client-*` |
    | `grafana` | `https://grafana.sunnyvale.be/login/generic_oauth` | `grafana-oidc-client-*` |
-   | `gateway` | `https://{sonarr,radarr,prowlarr,bazarr,sabnzbd,qbit,shelfmark,zigbee2mqtt,hubble,status}.sunnyvale.be/oauth2/callback` (one line each) | `gateway-oidc-client-*` |
+   | `gateway` | `https://{sonarr,radarr,prowlarr,bazarr,sabnzbd,qbit,shelfmark,zigbee2mqtt,hubble}.sunnyvale.be/oauth2/callback` (one line each) | `gateway-oidc-client-*` |
 
    Restrict each client to the `admins` group, paste the IDs and secrets into Bitwarden, and run `task reconcile`. External Secrets picks up the new values within an hour; `kubectl annotate es -A --all force-sync=$(date +%s) --overwrite` makes it immediate.
 
@@ -172,6 +175,37 @@ flux get ks -A --watch
 - **Updates**: Renovate opens PRs, CI renders them, and minor/patch versions automerge. Talos and Kubernetes are never automerged: merge the PR, then `task talos:upgrade-node` or `task talos:upgrade-k8s`.
 - **Config changes to the node**: edit `talos/`, then `task talos:apply`. It runs in `try` mode, so a change that cuts off the network rolls itself back after a minute instead of sending you to the garage.
 - **See what the node is doing**: `task talos:dashboard`, or Grafana → *Node Exporter Full*.
-- **Restore an app**: `task volsync:restore APP=home-assistant NS=home-automation`.
-- **Restore a database**: CNPG recovers from B2 via a `bootstrap.recovery` section pointing at the `ObjectStore`, see the [barman-cloud plugin docs](https://cloudnative-pg.io/plugin-barman-cloud/docs/usage/#restoring-a-cluster).
+- **Restore an app**: `task volsync:restore APP=home-assistant NS=home-automation`. Add `PREVIOUS=1` (skip the newest snapshot) or `AS_OF=<RFC 3339 time>` to go further back; `task --summary volsync:restore` explains both.
 - **Render locally like CI**: `task validate`.
+
+### Rebuild from scratch (new disk, reinstall, ...)
+
+The HDD keeps media and photos. Everything on the SSDs comes back from git and B2:
+
+1. Phase B of the migration above (`task talos:install`, `task talos:bootstrap`, `task bootstrap:apps`). Every app starts with an empty volume.
+2. **App data**: as soon as Flux is green, note the time and restore everything from before the rebuild:
+   ```sh
+   task volsync:restore-all AS_OF=2026-11-01T12:00:00Z   # a moment before you wiped the old install
+   ```
+   Do this the same day: the 03:00 backup saves the empty volumes as the newest snapshot. Nothing is lost if you're late (7 daily, 4 weekly and 3 monthly snapshots are kept); `AS_OF` simply skips past the empty ones.
+3. **Databases** (Immich, barpath): a new cluster can't archive into a folder that already holds backups, so it recovers from the old folder and writes to a new one. In the app's `database.yaml`, replace `bootstrap.initdb` and bump `serverName`:
+   ```yaml
+   spec:
+     bootstrap:
+       recovery:
+         source: previous
+     externalClusters:
+       - name: previous
+         plugin:
+           name: barman-cloud.cloudnative-pg.io
+           parameters:
+             barmanObjectName: immich-postgresql
+             serverName: immich-postgresql-v1   # the folder the old cluster wrote to
+     plugins:
+       - name: barman-cloud.cloudnative-pg.io
+         isWALArchiver: true
+         parameters:
+           barmanObjectName: immich-postgresql
+           serverName: immich-postgresql-v2     # new, empty folder
+   ```
+   If the cluster already started empty, delete it (`kubectl -n media delete cluster immich-postgresql`) and let Flux recreate it. Once it's running you can leave `recovery` in place; it only runs when the cluster is created. See the [barman-cloud plugin docs](https://cloudnative-pg.io/plugin-barman-cloud/docs/usage/#restoring-a-cluster).

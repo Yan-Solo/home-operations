@@ -18,13 +18,6 @@ kind: Gateway
 metadata:
   name: envoy-gateway
   namespace: default
-  annotations:
-    # Read by gatus-sidecar: every HTTPRoute on this gateway gets an uptime check.
-    # Anything below 400 counts as up (OIDC-protected apps answer with a redirect).
-    gatus.home-operations.com/endpoint: |
-      conditions: ["[STATUS] < 400"]
-      client:
-        ignore-redirect: true
 spec:
   gatewayClassName: envoy-gateway
   listeners:

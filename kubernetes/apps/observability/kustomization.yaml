@@ -9,5 +9,5 @@ resources:
   - ./loki/ks.yaml
   - ./tempo/ks.yaml
   - ./alloy/ks.yaml
+  - ./fluent-bit/ks.yaml
   - ./grafana/ks.yaml
-  - ./gatus/ks.yaml

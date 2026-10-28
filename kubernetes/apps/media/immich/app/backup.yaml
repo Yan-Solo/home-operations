@@ -37,6 +37,7 @@ spec:
 ---
 # Photo library: nightly restic backup of /var/mnt/hdd/pictures to B2.
 # Immich writes its files as root, so the backup reads them as root.
+# thumbs/ and encoded-video/ are skipped: Immich regenerates them (Administration > Jobs).
 apiVersion: volsync.backube/v1alpha1
 kind: ReplicationSource
 metadata:
@@ -48,6 +49,9 @@ spec:
   restic:
     copyMethod: Direct
     repository: immich-library-volsync-secret
+    # Skips every folder with a CACHEDIR.TAG file (written by the init container in ./helmrelease.yaml)
+    exclude:
+      caches: true
     pruneIntervalDays: 14
     retain:
       daily: 7
