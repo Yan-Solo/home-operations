@@ -9,7 +9,7 @@ name: ssd
 provisioning:
   diskSelector:
     # CHANGEME: serial of the storage SSD (wiped on first boot!), not the OS SSD
-    match: disk.serial == "CHANGEME-SSD-SERIAL"
+    match: disk.serial == "S75CNX0W359272N"
   minSize: 50GiB
   grow: true
 filesystem:
@@ -25,7 +25,7 @@ name: hdd
 provisioning:
   diskSelector:
     # CHANGEME: serial of the 6T HDD (wiped on first boot!)
-    match: disk.serial == "CHANGEME-HDD-SERIAL"
+    match: disk.serial == "WD-WX32D80K41A2"
   minSize: 1TiB
   grow: true
 filesystem:

@@ -30,7 +30,7 @@ nodes:
     controlPlane: true
     installDiskSelector:
       # CHANGEME: serial of the disk Talos installs to (wiped on install!)
-      serial: CHANGEME-OS-DISK-SERIAL
+      serial: 50026B7685C81E3C
     networkInterfaces:
       - deviceSelector:
           physical: true
