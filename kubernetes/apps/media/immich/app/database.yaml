@@ -34,7 +34,7 @@ spec:
           - /usr/lib/postgresql/18/lib
         extension_control_path:
           - /usr/share/postgresql/18/
-  # Continuous WAL archiving + base backups to B2 (see ./backup.yaml)
+  # Continuous WAL archiving + base backups to the S3 bucket (see ./backup.yaml)
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true

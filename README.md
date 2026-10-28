@@ -12,8 +12,8 @@ Single-node Talos cluster in the garage, managed entirely from this repo with Fl
 | Secrets | [External Secrets](https://external-secrets.io) + [Bitwarden Secrets Manager](https://bitwarden.com/products/secrets-manager/) (free plan) |
 | Login (SSO) | [Pocket ID](https://pocket-id.org) (passkeys): own OIDC for Grafana/Flux, gateway-level OIDC for apps without auth |
 | Storage | [OpenEBS LocalPV](https://openebs.io): `local-ssd` (default) and `local-hdd`; static volumes with fixed paths for media and photos on the HDD |
-| Databases | [CloudNativePG](https://cloudnative-pg.io) + barman-cloud plugin (WAL archiving to B2) |
-| Backups | [VolSync](https://volsync.readthedocs.io) (restic → Backblaze B2), nightly |
+| Databases | [CloudNativePG](https://cloudnative-pg.io) + barman-cloud plugin (WAL archiving to S3 storage) |
+| Backups | [VolSync](https://volsync.readthedocs.io) (restic → S3-compatible storage, e.g. Backblaze B2 or Cloudflare R2), nightly |
 | Observability | LGTM: Loki, Grafana, Tempo, Mimir; Alloy collects (Fluent Bit forwards Talos' own logs) |
 | Updates | Renovate (presets from [home-operations](https://github.com/home-operations/renovate-presets)), CI renders every PR with [flate](https://github.com/home-operations/flate) |
 
@@ -49,11 +49,11 @@ task                           # list all tasks
 
 **Bitwarden Secrets Manager** (free plan, separate from your password vault):
 1. Bitwarden web vault → product switcher → **Secrets Manager** → create a free organization.
-2. Create a project `homelab` and two machine accounts with access to it: `workstation` with *read & write* (it stores the Talos secrets), and `cluster` with *read* only (External Secrets only reads).
+2. Create a project (any name, e.g. `home-operations`; only its ID is used) and two machine accounts with access to it: `workstation` with *read & write* (it stores the Talos secrets), and `cluster` with *read* only (External Secrets only reads).
 3. Create an access token for each. Put them in `.env` (`BWS_CLUSTER_ACCESS_TOKEN`, `BWS_ACCESS_TOKEN`) together with `BWS_PROJECT_ID`.
 4. Put the organization ID and project ID in `kubernetes/flux/cluster/cluster-settings.yaml`. If your account is on bitwarden.eu, change the two URLs there as well.
 
-**Backblaze B2**: create a private bucket and an application key limited to that bucket. Set the bucket's lifecycle rule to *Keep only the last version of the file*: B2 keeps deleted files as hidden versions by default, so the snapshots restic prunes and the WAL files CNPG expires would stay billed forever. Put the bucket name and its S3 endpoint in `cluster-settings.yaml`.
+**Backup bucket** (any S3-compatible provider): create a private bucket and an access key limited to that bucket. Put the bucket name and its S3 endpoint in `cluster-settings.yaml`. On **Backblaze B2**, also set the bucket's lifecycle rule to *Keep only the last version of the file*: B2 keeps deleted files as hidden versions by default, so the snapshots restic prunes and the WAL files CNPG expires would stay billed forever. Cloudflare R2 has no file versions, so it needs nothing extra.
 
 **Cloudflare**: create an API token from the *Edit zone DNS* template, add the permission *Zone → Zone → Read*, and scope it to `sunnyvale.be`. It replaces the global API key you used before.
 
@@ -61,13 +61,13 @@ task                           # list all tasks
 
 ### 2. Secrets in Bitwarden Secrets Manager
 
-Create these secrets in the `homelab` project. The **name** must match exactly.
+Create these secrets in that project. The **name** must match exactly.
 
 | Name | Value |
 |---|---|
 | `cloudflare-api-token` | the Cloudflare API token |
-| `b2-access-key-id` | B2 application key ID |
-| `b2-secret-access-key` | B2 application key |
+| `s3-access-key-id` | access key ID for the backup bucket |
+| `s3-secret-access-key` | secret access key for the backup bucket |
 | `volsync-restic-password` | `openssl rand -base64 32` (**also save it in your password vault**: without it the backups are unreadable) |
 | `pocket-id-encryption-key` | `openssl rand -base64 32` |
 | `barpath-github-token` | the GitHub token for barpath |
@@ -171,7 +171,7 @@ flux get ks -A --watch
 
 ### Rebuild from scratch (new disk, reinstall, ...)
 
-The HDD keeps media and photos. Everything on the SSDs comes back from git and B2:
+The HDD keeps media and photos. Everything on the SSDs comes back from git and the backup bucket:
 
 1. Phase B of the migration above (`task talos:install`, `task talos:bootstrap`, `task bootstrap:apps`). Every app starts with an empty volume.
 2. **App data**: as soon as Flux is green, note the time and restore everything from before the rebuild:

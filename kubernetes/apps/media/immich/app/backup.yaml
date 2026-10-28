@@ -1,5 +1,5 @@
 ---
-# Database: point-in-time recovery from B2, kept 30 days.
+# Database: point-in-time recovery from the S3 bucket, kept 30 days.
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
@@ -35,7 +35,7 @@ spec:
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io
 ---
-# Photo library: nightly restic backup of /var/mnt/hdd/pictures to B2.
+# Photo library: nightly restic backup of /var/mnt/hdd/pictures to the S3 bucket.
 # Immich writes its files as root, so the backup reads them as root.
 # thumbs/ and encoded-video/ are skipped: Immich regenerates them (Administration > Jobs).
 apiVersion: volsync.backube/v1alpha1

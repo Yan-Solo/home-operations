@@ -1,5 +1,5 @@
 ---
-# Gives an app a PVC named ${APP} on the SSD plus a nightly restic backup to B2.
+# Gives an app a PVC named ${APP} on the SSD plus a nightly restic backup to the S3 bucket.
 # Variables (set in the app's ks.yaml postBuild.substitute):
 #   APP                      required
 #   VOLSYNC_CAPACITY         default 1Gi

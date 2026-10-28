@@ -1,5 +1,5 @@
 ---
-# CNPG plugin that ships WAL + base backups of every Postgres cluster to B2.
+# CNPG plugin that ships WAL + base backups of every Postgres cluster to the S3 bucket.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
