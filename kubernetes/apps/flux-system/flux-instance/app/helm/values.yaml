@@ -1,5 +1,5 @@
 ---
-# Shared by bootstrap/helmfile.yaml and the Flux HelmRelease.
+# Shared by bootstrap/helmfile.yaml.gotmpl and the Flux HelmRelease.
 instance:
   distribution:
     # renovate: datasource=github-releases depName=fluxcd/flux2

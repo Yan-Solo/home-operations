@@ -21,7 +21,7 @@ Single-node Talos cluster in the garage, managed entirely from this repo with Fl
 
 ```
 talos/                  talconfig.yaml + patches -> machine config (talos/clusterconfig, gitignored)
-bootstrap/helmfile.yaml the 5 releases Flux needs to start (Cilium, CoreDNS, CRDs, Flux)
+bootstrap/helmfile.yaml.gotmpl the 5 releases Flux needs to start (Cilium, CoreDNS, CRDs, Flux)
 kubernetes/
   flux/cluster/         entrypoint Flux syncs; cluster-settings.yaml holds account IDs
   components/volsync    "give this app a backed-up PVC"

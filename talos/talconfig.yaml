@@ -17,7 +17,7 @@ additionalMachineCertSans: *sans
 clusterPodNets: ["10.42.0.0/16"]
 clusterSvcNets: ["10.43.0.0/16"]
 
-# Cilium is installed during bootstrap (see bootstrap/helmfile.yaml)
+# Cilium is installed during bootstrap (see bootstrap/helmfile.yaml.gotmpl)
 cniConfig:
   name: none
 

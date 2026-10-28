@@ -2,6 +2,8 @@
 #
 # Only what Flux needs to start. Flux takes over these exact releases afterwards
 # (same names, same values files), so there is a single source of truth.
+# Chart URLs and versions are read from each app's ocirepository.yaml, so Renovate
+# only has to bump those.
 helmDefaults:
   cleanupOnFail: true
   wait: true
@@ -11,27 +13,31 @@ helmDefaults:
 releases:
   - name: prometheus-operator-crds
     namespace: kube-system
-    chart: oci://ghcr.io/prometheus-community/charts/prometheus-operator-crds
-    version: 32.0.2
+    {{- $crds := readFile "../kubernetes/apps/kube-system/prometheus-operator-crds/app/ocirepository.yaml" | fromYaml }}
+    chart: {{ $crds.spec.url }}
+    version: {{ $crds.spec.ref.tag }}
 
   - name: cilium
     namespace: kube-system
-    chart: oci://quay.io/cilium/charts/cilium
-    version: 1.20.4
+    {{- $cilium := readFile "../kubernetes/apps/kube-system/cilium/app/ocirepository.yaml" | fromYaml }}
+    chart: {{ $cilium.spec.url }}
+    version: {{ $cilium.spec.ref.tag }}
     values: ["../kubernetes/apps/kube-system/cilium/app/helm/values.yaml"]
     needs: ["kube-system/prometheus-operator-crds"]
 
   - name: coredns
     namespace: kube-system
-    chart: oci://ghcr.io/coredns/charts/coredns
-    version: 1.49.0
+    {{- $coredns := readFile "../kubernetes/apps/kube-system/coredns/app/ocirepository.yaml" | fromYaml }}
+    chart: {{ $coredns.spec.url }}
+    version: {{ $coredns.spec.ref.tag }}
     values: ["../kubernetes/apps/kube-system/coredns/app/helm/values.yaml"]
     needs: ["kube-system/cilium"]
 
   - name: flux-operator
     namespace: flux-system
-    chart: oci://ghcr.io/controlplaneio-fluxcd/charts/flux-operator
-    version: 0.62.1
+    {{- $operator := readFile "../kubernetes/apps/flux-system/flux-operator/app/ocirepository.yaml" | fromYaml }}
+    chart: {{ $operator.spec.url }}
+    version: {{ $operator.spec.ref.tag }}
     values:
       - "../kubernetes/apps/flux-system/flux-operator/app/helm/values.yaml"
       # The web UI needs the Gateway API CRDs and its OIDC secret, which don't exist yet.
@@ -42,7 +48,8 @@ releases:
 
   - name: flux-instance
     namespace: flux-system
-    chart: oci://ghcr.io/controlplaneio-fluxcd/charts/flux-instance
-    version: 0.62.1
+    {{- $instance := readFile "../kubernetes/apps/flux-system/flux-instance/app/ocirepository.yaml" | fromYaml }}
+    chart: {{ $instance.spec.url }}
+    version: {{ $instance.spec.ref.tag }}
     values: ["../kubernetes/apps/flux-system/flux-instance/app/helm/values.yaml"]
     needs: ["flux-system/flux-operator"]

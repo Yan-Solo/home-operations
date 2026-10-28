@@ -15,7 +15,8 @@
     managerFilePatterns: ["/kubernetes/.+/helm/values\\.ya?ml$/", "/kubernetes/.+/helmrelease\\.ya?ml$/"],
   },
   helmfile: {
-    managerFilePatterns: ["/bootstrap/helmfile\\.ya?ml$/"],
+    // bootstrap/helmfile.yaml.gotmpl reads its versions from the OCIRepositories
+    enabled: false,
   },
   kubernetes: {
     managerFilePatterns: ["/kubernetes/.+\\.ya?ml$/"],

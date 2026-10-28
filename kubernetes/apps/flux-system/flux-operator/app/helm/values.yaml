@@ -1,5 +1,5 @@
 ---
-# Shared by bootstrap/helmfile.yaml (which turns `web` off) and the Flux HelmRelease.
+# Shared by bootstrap/helmfile.yaml.gotmpl (which turns `web` off) and the Flux HelmRelease.
 web:
   enabled: true
   # OIDC config for the Flux web UI, rendered by ./externalsecret.yaml
