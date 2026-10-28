@@ -46,8 +46,18 @@
     },
     {
       description: "Never automerge Talos or Kubernetes - they need `task talos:upgrade-*`",
-      matchPackageNames: ["/siderolabs/"],
+      matchPackageNames: ["/siderolabs/", "/kubernetes/kubernetes/"],
       automerge: false,
+    },
+    {
+      description: "talosctl (.mise.toml) moves with the cluster's Talos version (talos/talenv.yaml)",
+      matchPackageNames: ["/siderolabs/talos/", "/siderolabs/installer/"],
+      groupName: "talos",
+    },
+    {
+      description: "kubectl (.mise.toml) moves with the cluster's Kubernetes version (talos/talenv.yaml)",
+      matchPackageNames: ["/kubernetes/kubernetes/", "/siderolabs/kubelet/"],
+      groupName: "kubernetes",
     },
     {
       description: "Group Flux operator and instance charts",
