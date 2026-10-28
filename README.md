@@ -20,14 +20,14 @@ Single-node Talos cluster in the garage, managed entirely from this repo with Fl
 ## Layout
 
 ```
-talos/                  talconfig.yaml + patches -> machine config (talos/clusterconfig, gitignored)
-bootstrap/helmfile.yaml.gotmpl the 5 releases Flux needs to start (Cilium, CoreDNS, CRDs, Flux)
+talos/                          talconfig.yaml + patches -> machine config (talos/clusterconfig, gitignored)
+bootstrap/helmfile.yaml.gotmpl  the 5 releases Flux needs to start (Cilium, CoreDNS, CRDs, Flux)
 kubernetes/
-  flux/cluster/         entrypoint Flux syncs; cluster-settings.yaml holds account IDs
-  components/volsync    "give this app a backed-up PVC"
-  components/oidc       "put a Pocket ID login in front of this route"
-  apps/<namespace>/<app>/ks.yaml + app/   one Flux Kustomization per app
-.taskfiles/             task talos:*, bootstrap:*, volsync:*
+  flux/cluster/                 entrypoint Flux syncs; cluster-settings.yaml holds account IDs
+  components/volsync            "give this app a backed-up PVC"
+  components/oidc               "put a Pocket ID login in front of this route"
+  apps/<namespace>/<app>/       ks.yaml + app/: one Flux Kustomization per app
+.taskfiles/                     task talos:*, bootstrap:*, volsync:*
 ```
 
 Adding an app: copy an existing folder (for example `kubernetes/apps/media/bazarr`), rename it, and add it to its namespace's `kustomization.yaml`. For a backed-up PVC add the `volsync` component. For a login in front, add the `oidc` component and its callback URL in Pocket ID.
