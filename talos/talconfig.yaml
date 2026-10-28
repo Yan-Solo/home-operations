@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/budimanjojo/talhelper/master/pkg/config/schemas/talconfig.json
 #
 # Everything marked CHANGEME must be filled in before `task talos:genconfig`.
-# Boot the Talos ISO and run `task talos:disks IP=<dhcp-ip>` to find the disk serials and the HDD UUID.
+# Boot the Talos ISO and run `task talos:disks IP=<dhcp-ip>` to find the disk serials.
 clusterName: homelab
 talosVersion: "${talosVersion}"
 kubernetesVersion: "${kubernetesVersion}"

@@ -15,15 +15,18 @@ provisioning:
 filesystem:
   type: xfs
 ---
-# The existing 6T HDD with media and Immich photos. Talos mounts it as-is at
-# /var/mnt/hdd and NEVER formats it.
+# The 6T HDD: media and the Immich photo library. Formatted by Talos on first boot, like
+# the SSD. Mounted at /var/mnt/hdd; `local-hdd` and the static volumes in
+# kubernetes/apps/media/storage use it. Talos never reformats a volume that already exists,
+# so later reinstalls keep the data.
 apiVersion: v1alpha1
-kind: ExistingVolumeConfig
+kind: UserVolumeConfig
 name: hdd
-discovery:
-  volumeSelector:
-    # CHANGEME: filesystem UUID of the HDD data partition (`blkid` on the old OS,
-    # or `task talos:disks` from the Talos ISO)
-    match: volume.uuid == "CHANGEME-HDD-FILESYSTEM-UUID"
-mount:
-  disableAccessTime: true
+provisioning:
+  diskSelector:
+    # CHANGEME: serial of the 6T HDD (wiped on first boot!)
+    match: disk.serial == "CHANGEME-HDD-SERIAL"
+  minSize: 1TiB
+  grow: true
+filesystem:
+  type: xfs

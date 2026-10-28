@@ -11,7 +11,7 @@ Single-node Talos cluster in the garage, managed entirely from this repo with Fl
 | GitOps | [Flux](https://fluxcd.io) through the [Flux Operator](https://fluxoperator.dev), web UI at flux.sunnyvale.be |
 | Secrets | [External Secrets](https://external-secrets.io) + [Bitwarden Secrets Manager](https://bitwarden.com/products/secrets-manager/) (free plan) |
 | Login (SSO) | [Pocket ID](https://pocket-id.org) (passkeys): own OIDC for Grafana/Flux, gateway-level OIDC for apps without auth |
-| Storage | [OpenEBS LocalPV](https://openebs.io): `local-ssd` (default) and `local-hdd`; static volumes for the existing HDD data |
+| Storage | [OpenEBS LocalPV](https://openebs.io): `local-ssd` (default) and `local-hdd`; static volumes with fixed paths for media and photos on the HDD |
 | Databases | [CloudNativePG](https://cloudnative-pg.io) + barman-cloud plugin (WAL archiving to B2) |
 | Backups | [VolSync](https://volsync.readthedocs.io) (restic → Backblaze B2), nightly |
 | Observability | LGTM: Loki, Grafana, Tempo, Mimir; Alloy collects (Fluent Bit forwards Talos' own logs) |
@@ -82,7 +82,7 @@ Then run `task talos:secrets:init BWS_PROJECT_ID=<id>`. It generates the Talos c
 
 ## Migration (one shot, same machine)
 
-The HDD with your media and photos is **mounted as-is** by Talos and never formatted. App configs on the SSD are rebuilt from scratch, except what you copy out in step A3.
+All three disks are wiped and Talos formats the data disks as XFS. Only what you copy out in steps A2 and A3 survives: the Immich photos and, optionally, the Zigbee2MQTT and Home Assistant data. Media is downloaded again.
 
 ### A. On the old server, before the wipe
 
@@ -90,24 +90,19 @@ The HDD with your media and photos is **mounted as-is** by Talos and never forma
    ```sh
    lsblk -o NAME,SIZE,MODEL,SERIAL,FSTYPE,UUID,MOUNTPOINTS
    ```
-   You need the serials of the **OS SSD** and the **storage SSD**, and the **filesystem UUID** of the HDD. Fill in every `CHANGEME` in `talos/talconfig.yaml` (OS SSD) and `talos/patches/node/volumes.yaml` (storage SSD, HDD). Both SSDs get wiped; the HDD doesn't.
-2. **Immich**: in Immich, *Administration → Jobs → Create job → Database dump*, then copy the newest `backups/immich-db-backup-*.sql.gz` from the pictures folder to your workstation.
-   **Strongly recommended:** also copy the whole photo library to another disk. Until the new B2 backups have run, the HDD is the only copy.
+   You need the serials of the **OS SSD**, the **storage SSD** and the **HDD**. Fill in every `CHANGEME` in `talos/talconfig.yaml` (OS SSD) and `talos/patches/node/volumes.yaml` (storage SSD, HDD).
+2. **Immich photos**: copy the originals to your workstation. They're in `library/` and `upload/` inside the pictures folder; skip `thumbs/` and `encoded-video/`, which Immich regenerates. Check that the copy is complete (`du -sh`, open a few files) before going on: after the wipe it's the only copy.
+   ```sh
+   rsync -av --exclude thumbs --exclude encoded-video --exclude backups <old-server>:<pictures-folder>/ ./backup/immich/
+   ```
 3. **Keep the Zigbee network**: copy the Zigbee2MQTT data folder (`configuration.yaml`, `coordinator_backup.json`, `database.db`) to your workstation. That way you don't have to re-pair every device. Do the same with the Home Assistant `/config` folder if you want to keep it:
    ```sh
    kubectl -n home-automation cp <zigbee2mqtt-pod>:/app/data ./backup/zigbee2mqtt
    kubectl -n home-automation cp <home-assistant-pod>:/config ./backup/home-assistant
    ```
 4. **Check which IP your Telenet modem forwards 80/443 to**: `kubectl get svc -A | grep LoadBalancer`, the Envoy one. This repo pins Envoy to `192.168.0.60`; either change the forward or `lbipam.cilium.io/ips` in `kubernetes/apps/network/envoy-gateway/config/envoyproxy.yaml`.
-5. **Stop everything** (`microk8s stop`), then give the HDD folders fixed names and the new app user:
-   ```sh
-   cd /var/mnt/hdd
-   mv pvc-*_media_media media
-   mv pvc-*_media_pictures pictures
-   chown -R 568:568 media        # the new containers run as uid 568; leave pictures as is (Immich runs as root)
-   ```
-6. Shut down. **Remove the GTX 960**, add the 2×8 GB, and enable the iGPU in the BIOS (often called *iGPU Multi-Monitor* or *Primary display: IGD*). Plug the monitor into the motherboard.
-7. **Unplug the HDD's SATA cable for the install.** Then the installer physically cannot touch it.
+5. Shut down. **Remove the GTX 960**, add the 2×8 GB, and enable the iGPU in the BIOS (often called *iGPU Multi-Monitor* or *Primary display: IGD*). Plug the monitor into the motherboard.
+6. **Unplug both data disks' SATA cables for the install.** Then the installer can only see the OS SSD.
 
 ### B. Install Talos (at your desk, once)
 
@@ -121,12 +116,12 @@ Write the ISO to a USB stick and boot the server from it. The console shows its 
 task talos:disks IP=<dhcp-ip>        # double-check the serials match what you filled in
 task talos:install IP=<dhcp-ip>      # installs to the OS disk and reboots onto 192.168.0.50
 ```
-Shut down, plug the HDD back in, and move the box to the garage. After it boots:
+Shut down, plug the data disks back in, and move the box to the garage. On this boot Talos formats them:
 
 ```sh
-talosctl -n 192.168.0.50 get volumestatus   # u-ssd and e-hdd must be "ready"
-# Talos only creates the `ssd` volume on free space. If u-ssd stays "waiting" because the
-# storage SSD still has its old partitions, wipe it (check the device name with `talosctl get disks`):
+talosctl -n 192.168.0.50 get volumestatus   # u-ssd and u-hdd must be "ready"
+# Talos only creates a volume on free space. If u-ssd or u-hdd stays "waiting" because the
+# disk still has its old partitions, wipe it (check the device name with `talosctl get disks`):
 #   talosctl -n 192.168.0.50 wipe disk sdX
 task talos:bootstrap                 # starts etcd, writes ./kubeconfig
 task bootstrap:apps                  # Cilium, CoreDNS, Flux; Flux deploys the rest
@@ -145,16 +140,12 @@ flux get ks -A --watch
 
    Restrict each client to the `admins` group, paste the IDs and secrets into Bitwarden, and run `task reconcile`. External Secrets picks up the new values within an hour; `kubectl annotate es -A --all force-sync=$(date +%s) --overwrite` makes it immediate.
 
-2. **Immich database**:
+2. **Immich photos**: open https://immich.sunnyvale.be, create your admin user, and create an API key under *Account settings → API keys*. Then upload the copy from step A2:
    ```sh
-   flux -n flux-system suspend ks immich
-   kubectl -n media scale deploy immich-server --replicas 0
-   gunzip --stdout immich-db-backup-*.sql.gz \
-     | sed "s/SELECT pg_catalog.set_config('search_path', '', false);/SELECT pg_catalog.set_config('search_path', 'public, pg_catalog', true);/g" \
-     | kubectl -n media exec -i immich-postgresql-1 -c postgres -- psql -U postgres
-   flux -n flux-system resume ks immich && flux -n media reconcile hr immich --force
+   npx @immich/cli login https://immich.sunnyvale.be/api <api-key>
+   npx @immich/cli upload --recursive ./backup/immich
    ```
-   Immich stays on the version that wrote the dump (v3.0.0). Let Renovate move it forward afterwards.
+   Immich rebuilds thumbnails, faces and places from the photos themselves. Albums and favourites start empty.
 
 3. **Zigbee2MQTT / Home Assistant data** (if you kept it):
    ```sh
