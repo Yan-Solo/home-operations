@@ -15,7 +15,7 @@ spec:
   # With a single instance the PodDisruptionBudget would block draining the only node
   # (Talos upgrades). Losing a few seconds of availability is fine here.
   enablePDB: false
-  imageName: ghcr.io/cloudnative-pg/postgresql:18-standard-trixie
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.6-standard-trixie
   bootstrap:
     initdb:
       database: immich
@@ -41,7 +41,7 @@ spec:
       parameters:
         barmanObjectName: immich-postgresql
         # Folder in the bucket. A rebuilt cluster can't archive into a folder that already
-        # holds backups, so bump this on every rebuild (README > Day 2 > Rebuild a database).
+        # holds backups, so bump this on every rebuild (README > Rebuild from scratch, step 3).
         serverName: immich-postgresql-v1
 ---
 apiVersion: postgresql.cnpg.io/v1
