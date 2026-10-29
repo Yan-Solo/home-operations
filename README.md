@@ -130,7 +130,7 @@ flux get ks -A --watch
 
 ### C. After Flux is green
 
-1. **Pocket ID**: open https://id.sunnyvale.be/setup, create your admin user and register a passkey. Create a group `admins` and add yourself. Then create three OIDC clients:
+1. **Pocket ID**: open https://id.sunnyvale.be/setup, create your admin user and register a passkey. Do this first, as soon as the `pocket-id` Kustomization is ready: until an admin exists, anyone who reaches `/setup` can become it, and your modem already forwards 443 to the gateway. If you'll be away from the keyboard, turn the port forward off until this is done. Create a group `admins` and add yourself. Then create three OIDC clients:
 
    | Client | Callback URL(s) | Bitwarden secrets |
    |---|---|---|
