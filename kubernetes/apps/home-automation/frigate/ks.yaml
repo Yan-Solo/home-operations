@@ -1,7 +1,5 @@
 ---
-# Frigate (NVR with object detection) for when the cameras arrive. Not deployed yet: to
-# enable it, add `./frigate/ks.yaml` to ../kustomization.yaml and add
-# https://frigate.sunnyvale.be/oauth2/callback to the `gateway` client in Pocket ID.
+# Frigate: NVR with object detection for the cameras
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:

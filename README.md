@@ -136,7 +136,7 @@ flux get ks -A --watch
    |---|---|---|
    | `flux` | `https://flux.sunnyvale.be/oauth2/callback` | `flux-oidc-client-*` |
    | `grafana` | `https://grafana.sunnyvale.be/login/generic_oauth` | `grafana-oidc-client-*` |
-   | `gateway` | `https://{sonarr,radarr,prowlarr,bazarr,sabnzbd,qbit,shelfmark,zigbee2mqtt,hubble}.sunnyvale.be/oauth2/callback` (one line each) | `gateway-oidc-client-*` |
+   | `gateway` | `https://{sonarr,radarr,prowlarr,bazarr,sabnzbd,qbit,shelfmark,zigbee2mqtt,frigate,hubble}.sunnyvale.be/oauth2/callback` (one line each) | `gateway-oidc-client-*` |
 
    Restrict each client to the `admins` group, paste the IDs and secrets into Bitwarden, and run `task reconcile`. External Secrets picks up the new values within an hour; `kubectl annotate es -A --all force-sync=$(date +%s) --overwrite` makes it immediate.
 
