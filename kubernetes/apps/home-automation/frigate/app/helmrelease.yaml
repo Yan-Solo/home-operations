@@ -2,6 +2,8 @@
 # Cameras, detectors and retention live in /config/config.yml. Frigate writes a starter
 # config on first boot; edit it in the UI (Settings > Configuration editor) and VolSync
 # backs it up. Point MQTT at mqtt://mosquitto.home-automation.svc.cluster.local.
+# Camera passwords come from Bitwarden (./externalsecret.yaml): write them as
+# {FRIGATE_TAPO_USERNAME} / {FRIGATE_TAPO_PASSWORD} in the config.
 # Video decoding uses the iGPU (`hwaccel_args: preset-vaapi`). For object detection the
 # CPU detector works for a camera or two; the `-rocm` image (AMD iGPU) or a Coral scale
 # further.
@@ -23,6 +25,9 @@ spec:
             image:
               repository: ghcr.io/blakeblackshear/frigate
               tag: 0.18.2
+            envFrom:
+              - secretRef:
+                  name: frigate-secret
             probes:
               liveness: &probe
                 enabled: true

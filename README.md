@@ -71,6 +71,7 @@ Create these secrets in that project. The **name** must match exactly.
 | `volsync-restic-password` | `openssl rand -base64 32` (**also save it in your password vault**: without it the backups are unreadable) |
 | `pocket-id-encryption-key` | `openssl rand -base64 32` |
 | `barpath-github-token` | the GitHub token for barpath |
+| `frigate-tapo-username` / `frigate-tapo-password` | the Tapo C200's *Camera Account* (Tapo app → camera → Settings → Advanced settings → Camera Account) |
 | `gateway-oidc-client-id` / `gateway-oidc-client-secret` | after Pocket ID is up (see below); use `placeholder` for now |
 | `grafana-oidc-client-id` / `grafana-oidc-client-secret` | same |
 | `flux-oidc-client-id` / `flux-oidc-client-secret` | same |
