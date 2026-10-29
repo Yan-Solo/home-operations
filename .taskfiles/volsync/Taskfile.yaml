@@ -24,9 +24,13 @@ tasks:
         PREVIOUS=1                        skip the newest snapshot (2 skips two, ...)
         AS_OF=2026-11-01T00:00:00Z        newest snapshot taken before this moment (RFC 3339)
       List the snapshots with: restic snapshots (using the app's ${APP}-volsync-secret values).
+      When the PVC or the Flux Kustomization isn't named after the backup, pass them:
+        PVC=pictures KS=immich            the Immich photo library (APP=immich-library)
     requires:
       vars: [APP, NS]
     vars:
+      PVC: '{{.PVC | default .APP}}'
+      KS: '{{.KS | default .APP}}'
       PREVIOUS: '{{.PREVIOUS | default "0"}}'
       AS_OF: '{{.AS_OF | default ""}}'
       PUID:
@@ -34,9 +38,9 @@ tasks:
       PGID:
         sh: kubectl --namespace {{.NS}} get replicationsource {{.APP}} -o jsonpath='{.spec.restic.moverSecurityContext.runAsGroup}'
     cmds:
-      - flux --namespace flux-system suspend kustomization {{.APP}}
-      - kubectl --namespace {{.NS}} scale deployment,statefulset --selector app.kubernetes.io/instance={{.APP}} --replicas 0
-      - kubectl --namespace {{.NS}} wait pod --selector app.kubernetes.io/instance={{.APP}} --for=delete --timeout=5m
+      - flux --namespace flux-system suspend kustomization {{.KS}}
+      - kubectl --namespace {{.NS}} scale deployment,statefulset --selector app.kubernetes.io/instance={{.KS}} --replicas 0
+      - kubectl --namespace {{.NS}} wait pod --selector app.kubernetes.io/instance={{.KS}} --for=delete --timeout=5m
       - |
         kubectl apply --server-side -f - <<RD
         apiVersion: volsync.backube/v1alpha1
@@ -49,7 +53,7 @@ tasks:
             manual: restore-once
           restic:
             repository: {{.APP}}-volsync-secret
-            destinationPVC: {{.APP}}
+            destinationPVC: {{.PVC}}
             copyMethod: Direct
             previous: {{.PREVIOUS}}
             {{- if .AS_OF}}
@@ -63,8 +67,8 @@ tasks:
         RD
       - kubectl --namespace {{.NS}} wait replicationdestination {{.APP}}-restore --for=jsonpath='{.status.latestMoverStatus.result}'=Successful --timeout=60m
       - kubectl --namespace {{.NS}} delete replicationdestination {{.APP}}-restore
-      - flux --namespace flux-system resume kustomization {{.APP}}
-      - flux --namespace {{.NS}} reconcile helmrelease {{.APP}} --force
+      - flux --namespace flux-system resume kustomization {{.KS}}
+      - flux --namespace {{.NS}} reconcile helmrelease {{.KS}} --force
 
   restore-all:
     desc: "After a rebuild: restore every app backup, one by one (task volsync:restore-all [PREVIOUS=n] [AS_OF=...])"

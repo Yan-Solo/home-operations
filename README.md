@@ -171,7 +171,7 @@ flux get ks -A --watch
 
 ### Rebuild from scratch (new disk, reinstall, ...)
 
-The HDD keeps media and photos. Everything on the SSDs comes back from git and the backup bucket:
+The HDD keeps media and photos. Everything on the SSDs comes back from git and the backup bucket. If the HDD itself was lost, the photos come back from their own backup: `task volsync:restore APP=immich-library NS=media PVC=pictures KS=immich` (media is downloaded again).
 
 1. Phase B of the migration above (`task talos:install`, `task talos:bootstrap`, `task bootstrap:apps`). Every app starts with an empty volume.
 2. **App data**: as soon as Flux is green, note the time and restore everything from before the rebuild:
