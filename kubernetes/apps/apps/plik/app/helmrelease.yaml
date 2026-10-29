@@ -24,7 +24,6 @@ spec:
               repository: docker.io/rootgg/plik
               tag: 1.4.3
             env:
-              TZ: Europe/Brussels
               # Store uploaded files and SQLite metadata on the persistent volume
               PLIKD_DATA_BACKEND: file
               PLIKD_DATA_BACKEND_CONFIG: '{"Directory":"/data/files"}'

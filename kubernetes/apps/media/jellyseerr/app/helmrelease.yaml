@@ -25,7 +25,6 @@ spec:
               repository: ghcr.io/seerr-team/seerr
               tag: v3.5.1
             env:
-              TZ: Europe/Brussels
               LOG_LEVEL: info
               PORT: &port 5055
             probes:

@@ -1,0 +1,105 @@
+---
+# Cameras, detectors and retention live in /config/config.yml. Frigate writes a starter
+# config on first boot; edit it in the UI (Settings > Configuration editor) and VolSync
+# backs it up. Point MQTT at mqtt://mosquitto.home-automation.svc.cluster.local.
+# Video decoding uses the iGPU (`hwaccel_args: preset-vaapi`). For object detection the
+# CPU detector works for a camera or two; the `-rocm` image (AMD iGPU) or a Coral scale
+# further.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: frigate
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: frigate
+  interval: 1h
+  values:
+    controllers:
+      frigate:
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: ghcr.io/blakeblackshear/frigate
+              tag: 0.18.2
+            probes:
+              liveness: &probe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /api/version
+                    port: &port 5000
+                  periodSeconds: 30
+                  failureThreshold: 5
+              readiness: *probe
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /api/version
+                    port: *port
+                  periodSeconds: 10
+                  failureThreshold: 30
+            resources:
+              requests:
+                cpu: 200m
+                memory: 1Gi
+                # /dev/dri for VAAPI video decoding, from generic-device-plugin (kube-system)
+                squat.ai/dri: 1
+              limits:
+                memory: 4Gi
+                squat.ai/dri: 1
+    service:
+      frigate:
+        controller: frigate
+        type: LoadBalancer
+        annotations:
+          # A fixed LAN IP: WebRTC live view and RTSP restreams connect here directly
+          lbipam.cilium.io/ips: 192.168.0.64
+        ports:
+          # Port 5000 has no login of its own: Pocket ID guards the route, and Home
+          # Assistant's Frigate integration talks to it inside the cluster
+          http:
+            port: *port
+          rtsp:
+            port: 8554
+          webrtc-tcp:
+            port: 8555
+            protocol: TCP
+          webrtc-udp:
+            port: 8555
+            protocol: UDP
+    route:
+      frigate:
+        hostnames: ["frigate.sunnyvale.be"]
+        parentRefs:
+          - name: envoy-gateway
+            namespace: default
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: frigate
+                port: *port
+    persistence:
+      config:
+        existingClaim: frigate
+        globalMounts:
+          - path: /config
+      media:
+        existingClaim: frigate-media
+        globalMounts:
+          - path: /media/frigate
+      # Frigate keeps the frames it is analysing in shared memory
+      shm:
+        type: emptyDir
+        medium: Memory
+        sizeLimit: 1Gi
+        globalMounts:
+          - path: /dev/shm
+      cache:
+        type: emptyDir
+        globalMounts:
+          - path: /tmp/cache

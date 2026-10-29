@@ -1,0 +1,36 @@
+---
+# Frigate (NVR with object detection) for when the cameras arrive. Not deployed yet: to
+# enable it, add `./frigate/ks.yaml` to ../kustomization.yaml and add
+# https://frigate.sunnyvale.be/oauth2/callback to the `gateway` client in Pocket ID.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: frigate
+  namespace: flux-system
+spec:
+  components:
+    - ../../../../components/volsync
+    - ../../../../components/oidc
+  dependsOn:
+    - name: openebs
+    - name: volsync
+    - name: external-secrets-stores
+    - name: envoy-gateway-config
+    - name: mosquitto
+    - name: generic-device-plugin
+  interval: 1h
+  path: ./kubernetes/apps/home-automation/frigate/app
+  postBuild:
+    substitute:
+      APP: frigate
+      VOLSYNC_CAPACITY: 5Gi
+      VOLSYNC_PUID: "0"
+      VOLSYNC_PGID: "0"
+    substituteFrom:
+      - kind: ConfigMap
+        name: cluster-settings
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  targetNamespace: home-automation

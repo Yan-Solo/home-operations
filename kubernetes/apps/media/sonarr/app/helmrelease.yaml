@@ -25,7 +25,6 @@ spec:
               repository: ghcr.io/home-operations/sonarr
               tag: 5.0.0.2800
             env:
-              TZ: Europe/Brussels
               SONARR__APP__INSTANCENAME: Sonarr
               SONARR__AUTH__METHOD: External
               SONARR__AUTH__REQUIRED: DisabledForLocalAddresses

@@ -30,7 +30,6 @@ spec:
               ALLOW_SIGNUP: "false"
               API_PORT: &port 9000
               API_DOCS: "true"
-              TZ: Europe/Brussels
               DATA_DIR: /app/data
               PUID: "568"
               PGID: "568"

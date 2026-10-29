@@ -27,7 +27,6 @@ spec:
             env:
               APP_URL: https://id.sunnyvale.be
               TRUST_PROXY: "true"
-              TZ: Europe/Brussels
               ANALYTICS_DISABLED: "true"
             envFrom:
               - secretRef:

@@ -102,6 +102,20 @@ spec:
         flux-cluster:
           url: https://raw.githubusercontent.com/controlplaneio-fluxcd/flux-operator/main/config/monitoring/dashboards/cluster.json
           datasource: Mimir
+        # grafana.com dashboards ask for a datasource input: 22604 refers to it by uid, the older
+        # 7587 by name
+        smartctl-exporter:
+          gnetId: 22604
+          revision: 4
+          datasource:
+            - name: DS_PROMETHEUS
+              value: mimir
+        blackbox-exporter:
+          gnetId: 7587
+          revision: 3
+          datasource:
+            - name: DS_SIGNCL-PROMETHEUS
+              value: Mimir
     # Charts that ship dashboards as ConfigMaps (Cilium, CNPG, ...) are picked up automatically
     sidecar:
       dashboards:

@@ -18,7 +18,6 @@ spec:
               repository: ghcr.io/koenkk/zigbee2mqtt
               tag: 2.14.2
             env:
-              TZ: Europe/Brussels
               ZIGBEE2MQTT_DATA: /data
               # These override the matching keys in /data/configuration.yaml
               ZIGBEE2MQTT_CONFIG_MQTT_SERVER: mqtt://mosquitto.home-automation.svc.cluster.local

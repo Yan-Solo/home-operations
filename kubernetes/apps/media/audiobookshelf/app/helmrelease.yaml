@@ -25,7 +25,6 @@ spec:
               repository: ghcr.io/advplyr/audiobookshelf
               tag: 2.37.2
             env:
-              TZ: Europe/Brussels
               PORT: &port 8080
               CONFIG_PATH: /config
               METADATA_PATH: /metadata

@@ -27,7 +27,6 @@ spec:
               repository: docker.io/jellyfin/jellyfin
               tag: "12.4"
             env:
-              TZ: Europe/Brussels
               JELLYFIN_PublishedServerUrl: https://jellyfin.sunnyvale.be
               JELLYFIN_FFmpeg__probesize: 50000000
               JELLYFIN_FFmpeg__analyzeduration: 50000000

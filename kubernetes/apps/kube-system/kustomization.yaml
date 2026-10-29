@@ -5,6 +5,7 @@ resources:
   - ./cilium/ks.yaml
   - ./coredns/ks.yaml
   - ./generic-device-plugin/ks.yaml
+  - ./k8tz/ks.yaml
   - ./metrics-server/ks.yaml
   - ./prometheus-operator-crds/ks.yaml
   - ./reloader/ks.yaml

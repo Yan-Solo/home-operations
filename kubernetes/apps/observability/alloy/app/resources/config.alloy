@@ -19,6 +19,11 @@ prometheus.operator.podmonitors "all" {
   forward_to = [prometheus.remote_write.mimir.receiver]
 }
 
+// Probe objects: the blackbox-exporter checks in observability/blackbox-exporter
+prometheus.operator.probes "all" {
+  forward_to = [prometheus.remote_write.mimir.receiver]
+}
+
 // Kubelet and cAdvisor (container CPU / memory)
 discovery.kubernetes "nodes" {
   role = "node"

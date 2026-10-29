@@ -25,7 +25,6 @@ spec:
               repository: ghcr.io/home-operations/bazarr
               tag: 1.6.2
             env:
-              TZ: Europe/Brussels
               BAZARR__PORT: &port 6767
             probes:
               liveness: &probe
