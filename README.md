@@ -108,7 +108,7 @@ All three disks are wiped and Talos formats the data disks as XFS. Only what you
 
 ```sh
 task talos:genconfig                 # renders the config; needs the CHANGEMEs filled
-talhelper genurl iso --config-file talos/talconfig.yaml   # ISO with the i915 + intel-ucode extensions
+talhelper genurl image --config-file talos/talconfig.yaml  # ISO with the amdgpu + amd-ucode extensions
 ```
 Write the ISO to a USB stick and boot the server from it. The console shows its DHCP IP.
 

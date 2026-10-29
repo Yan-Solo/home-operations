@@ -12,7 +12,7 @@ spec:
     - name: volsync
     - name: external-secrets-stores
     - name: envoy-gateway-config
-    - name: intel-gpu-plugin
+    - name: generic-device-plugin
   interval: 1h
   path: ./kubernetes/apps/media/jellyfin/app
   postBuild:

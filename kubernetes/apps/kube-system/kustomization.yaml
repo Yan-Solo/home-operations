@@ -4,7 +4,7 @@ kind: Kustomization
 resources:
   - ./cilium/ks.yaml
   - ./coredns/ks.yaml
-  - ./intel-gpu/ks.yaml
+  - ./generic-device-plugin/ks.yaml
   - ./metrics-server/ks.yaml
   - ./prometheus-operator-crds/ks.yaml
   - ./reloader/ks.yaml

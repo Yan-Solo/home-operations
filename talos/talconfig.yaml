@@ -47,8 +47,8 @@ nodes:
       customization:
         systemExtensions:
           officialExtensions:
-            - siderolabs/i915 # iGPU (HD 530) for Jellyfin QuickSync
-            - siderolabs/intel-ucode
+            - siderolabs/amdgpu # firmware for the iGPU (Vega 7), used by Jellyfin VAAPI
+            - siderolabs/amd-ucode
     patches:
       - "@./patches/node/volumes.yaml"
 

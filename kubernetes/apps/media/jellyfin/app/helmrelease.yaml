@@ -16,7 +16,7 @@ spec:
         runAsGroup: 568
         fsGroup: 568
         fsGroupChangePolicy: OnRootMismatch
-        # render/video groups for /dev/dri (handed out by the Intel GPU plugin)
+        # render/video groups for /dev/dri (handed out by generic-device-plugin)
         supplementalGroups: [44, 105]
     controllers:
       jellyfin:
@@ -53,10 +53,10 @@ spec:
               requests:
                 cpu: 100m
                 memory: 512Mi
-                gpu.intel.com/i915: 1
+                squat.ai/dri: 1
               limits:
                 memory: 4Gi
-                gpu.intel.com/i915: 1
+                squat.ai/dri: 1
             securityContext:
               allowPrivilegeEscalation: false
               readOnlyRootFilesystem: true
