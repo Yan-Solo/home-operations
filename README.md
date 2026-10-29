@@ -80,11 +80,11 @@ Then run `task talos:secrets:init BWS_PROJECT_ID=<id>`. It generates the Talos c
 
 ---
 
-## Migration (one shot, same machine)
+## Migration (one shot, onto the EliteDesk)
 
-All three disks are wiped and Talos formats the data disks as XFS. Only what you copy out in steps A2 and A3 survives: the Immich photos and, optionally, the Zigbee2MQTT and Home Assistant data. Media is downloaded again.
+The disks move from the old server into the EliteDesk 805 G6, so the old server stops for good in step A5. All three disks are wiped and Talos formats the data disks as XFS. Only what you copy out in steps A2 and A3 survives: the Immich photos and, optionally, the Zigbee2MQTT and Home Assistant data. Media is downloaded again.
 
-### A. On the old server, before the wipe
+### A. On the old server, before it goes off
 
 1. **Write down the disks**:
    ```sh
@@ -101,8 +101,8 @@ All three disks are wiped and Talos formats the data disks as XFS. Only what you
    kubectl -n home-automation cp <home-assistant-pod>:/config ./backup/home-assistant
    ```
 4. **Check which IP your Telenet modem forwards 80/443 to**: `kubectl get svc -A | grep LoadBalancer`, the Envoy one. This repo pins Envoy to `192.168.0.60`; either change the forward or `lbipam.cilium.io/ips` in `kubernetes/apps/network/envoy-gateway/config/envoyproxy.yaml`.
-5. Shut down. **Remove the GTX 960**, add the 2×8 GB, and enable the iGPU in the BIOS (often called *iGPU Multi-Monitor* or *Primary display: IGD*). Plug the monitor into the motherboard.
-6. **Unplug both data disks' SATA cables for the install.** Then the installer can only see the OS SSD.
+5. Shut the old server down. Move the disks and the **Zigbee dongle** into the EliteDesk. In the EliteDesk BIOS (F10), allow booting from USB and turn **Secure Boot off** (the standard Talos ISO isn't signed for it).
+6. **Leave the data disks unconnected for the install.** Then the installer can only see the OS disk.
 
 ### B. Install Talos (at your desk, once)
 

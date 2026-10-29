@@ -28,15 +28,15 @@ spec:
               ZIGBEE2MQTT_CONFIG_FRONTEND_ENABLED: "true"
               ZIGBEE2MQTT_CONFIG_FRONTEND_PORT: &port 8080
               ZIGBEE2MQTT_CONFIG_HOMEASSISTANT_ENABLED: "true"
-            securityContext:
-              # Access to the USB dongle
-              privileged: true
             resources:
               requests:
                 cpu: 10m
                 memory: 128Mi
+                # The USB dongle at /dev/ttyACM0, from generic-device-plugin (kube-system)
+                squat.ai/zigbee: 1
               limits:
                 memory: 512Mi
+                squat.ai/zigbee: 1
     service:
       zigbee2mqtt:
         controller: zigbee2mqtt
@@ -60,9 +60,3 @@ spec:
         existingClaim: zigbee2mqtt
         globalMounts:
           - path: /data
-      zigbee-dongle:
-        type: hostPath
-        hostPath: /dev/serial/by-id/usb-ITEAD_SONOFF_Zigbee_3.0_USB_Dongle_Plus_V2_20230829184048-if00
-        hostPathType: CharDevice
-        globalMounts:
-          - path: /dev/ttyACM0

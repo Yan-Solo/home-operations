@@ -14,6 +14,7 @@ spec:
     - name: external-secrets-stores
     - name: envoy-gateway-config
     - name: mosquitto
+    - name: generic-device-plugin
   interval: 1h
   path: ./kubernetes/apps/home-automation/zigbee2mqtt/app
   postBuild:
