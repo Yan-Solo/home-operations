@@ -16,3 +16,4 @@ resources:
   - ./home-automation
   - ./apps
   - ./barpath
+  - ./gameplane-system

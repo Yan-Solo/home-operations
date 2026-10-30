@@ -1,0 +1,74 @@
+---
+# Game servers are created from the dashboard (Modules: Valheim, Palworld, Satisfactory,
+# Factorio, Enshrouded, ...). Each gets its own LoadBalancer Service: pin a free LAN IP from
+# the Cilium pool (192.168.0.60-70) under the server's networking settings and forward its
+# game ports on the Telenet modem.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: gameplane
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: gameplane
+  interval: 1h
+  # Flux manages the CRDs (crds/ in the chart); the chart's own kubectl hook is off
+  install:
+    crds: CreateReplace
+  upgrade:
+    crds: CreateReplace
+  valuesFrom:
+    - kind: Secret
+      name: gameplane-oidc
+      valuesKey: clientID
+      targetPath: api.oidc.clientID
+  values:
+    crds:
+      autoApply:
+        enabled: false
+    gamesNamespace: games
+    operator:
+      # Single replica: leader election only adds a way to crash-loop
+      leaderElect: false
+      # Lets a GameServer pin its LoadBalancer IP (lbipam.cilium.io/ips)
+      addressManager: cilium
+      gameDataStorage:
+        storageClassName: local-ssd
+    api:
+      # SQLite database on the PVC from the volsync component (backed up nightly)
+      storage:
+        existingClaim: gameplane
+      # Only Envoy (in the pod network) may set X-Forwarded-For
+      trustedProxies: 10.42.0.0/16
+      oidc:
+        enabled: true
+        issuer: https://id.sunnyvale.be
+        clientSecretRef:
+          name: gameplane-oidc
+          key: clientSecret
+        redirectURL: https://gameplane.sunnyvale.be/auth/oidc/helm/callback
+        displayName: Pocket ID
+        # Gameplane's Helm-configured provider can't ask for the `groups` scope, so Pocket ID
+        # sends no groups and the mapping below never matches. Everyone who gets through
+        # falls back to defaultRole: restrict the Pocket ID client to the `admins` group.
+        roleMappings:
+          admin: ["admins"]
+        defaultRole: admin
+    # The dashboard is exposed by ./httproute.yaml
+    ingress:
+      enabled: false
+    networkPolicies:
+      enabled: true
+    serviceMonitors:
+      enabled: true
+      # Alloy runs in observability; opens the agents' metrics port to it
+      scrapeNamespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: observability
+    grafanaDashboards:
+      enabled: true
+    defaultModuleSource:
+      oci:
+        # Refuse game modules that aren't signed by the Gameplane release key
+        verify:
+          enabled: true

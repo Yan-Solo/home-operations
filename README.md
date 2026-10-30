@@ -75,6 +75,7 @@ Create these secrets in that project. The **name** must match exactly.
 | `gateway-oidc-client-id` / `gateway-oidc-client-secret` | after Pocket ID is up (see below); use `placeholder` for now |
 | `grafana-oidc-client-id` / `grafana-oidc-client-secret` | same |
 | `flux-oidc-client-id` / `flux-oidc-client-secret` | same |
+| `gameplane-oidc-client-id` / `gameplane-oidc-client-secret` | same |
 | `talos-secrets` | created by `task talos:secrets:init` |
 
 Then run `task talos:secrets:init BWS_PROJECT_ID=<id>`. It generates the Talos cluster secrets and stores them in Bitwarden, so a lost laptop never locks you out of the cluster.
@@ -131,12 +132,13 @@ flux get ks -A --watch
 
 ### C. After Flux is green
 
-1. **Pocket ID**: open https://id.sunnyvale.be/setup, create your admin user and register a passkey. Do this first, as soon as the `pocket-id` Kustomization is ready: until an admin exists, anyone who reaches `/setup` can become it, and your modem already forwards 443 to the gateway. If you'll be away from the keyboard, turn the port forward off until this is done. Create a group `admins` and add yourself. Then create three OIDC clients:
+1. **Pocket ID**: open https://id.sunnyvale.be/setup, create your admin user and register a passkey. Do this first, as soon as the `pocket-id` Kustomization is ready: until an admin exists, anyone who reaches `/setup` can become it, and your modem already forwards 443 to the gateway. If you'll be away from the keyboard, turn the port forward off until this is done. Create a group `admins` and add yourself. Then create four OIDC clients:
 
    | Client | Callback URL(s) | Bitwarden secrets |
    |---|---|---|
    | `flux` | `https://flux.sunnyvale.be/oauth2/callback` | `flux-oidc-client-*` |
    | `grafana` | `https://grafana.sunnyvale.be/login/generic_oauth` | `grafana-oidc-client-*` |
+   | `gameplane` | `https://gameplane.sunnyvale.be/auth/oidc/helm/callback` | `gameplane-oidc-client-*` |
    | `gateway` | `https://{sonarr,radarr,prowlarr,bazarr,sabnzbd,qbit,shelfmark,zigbee2mqtt,frigate,hubble}.sunnyvale.be/oauth2/callback` (one line each) | `gateway-oidc-client-*` |
 
    Restrict each client to the `admins` group, paste the IDs and secrets into Bitwarden, and run `task reconcile`. External Secrets picks up the new values within an hour; `kubectl annotate es -A --all force-sync=$(date +%s) --overwrite` makes it immediate.

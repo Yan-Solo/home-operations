@@ -1,0 +1,23 @@
+---
+# The chart's NetworkPolicies deny all egress in the games namespace and let the game
+# pods' agent sidecar (and the wake sentinel) reach the API server through an ipBlock on
+# the private ranges. Cilium doesn't match the API server by IP: it runs on the node and
+# carries the `kube-apiserver` identity. This adds that path, so status heartbeats work.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-apiserver
+spec:
+  endpointSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: ["gameplane-game", "gameplane-waker"]
+  egress:
+    - toEntities: ["kube-apiserver"]
+      toPorts:
+        - ports:
+            - port: "6443"
+              protocol: TCP
+            - port: "443"
+              protocol: TCP
