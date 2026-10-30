@@ -13,7 +13,7 @@ Single-node Talos cluster in the garage, managed entirely from this repo with Fl
 | Login (SSO) | [Pocket ID](https://pocket-id.org) (passkeys): own OIDC for Grafana/Flux, gateway-level OIDC for apps without auth |
 | Storage | [OpenEBS LocalPV](https://openebs.io): `local-ssd` (default) and `local-hdd`; static volumes with fixed paths for media and photos on the HDD |
 | Databases | [CloudNativePG](https://cloudnative-pg.io) + barman-cloud plugin (WAL archiving to S3 storage) |
-| Backups | [VolSync](https://volsync.readthedocs.io) (restic → S3-compatible storage, e.g. Backblaze B2 or Cloudflare R2), nightly |
+| Backups | [VolSync](https://volsync.readthedocs.io) (restic → Backblaze B2, EU Central), nightly |
 | Observability | LGTM: Loki, Grafana, Tempo, Mimir; Alloy collects (Fluent Bit forwards Talos' own logs) |
 | Updates | Renovate (presets from [home-operations](https://github.com/home-operations/renovate-presets)), CI renders every PR with [flate](https://github.com/home-operations/flate) |
 
@@ -53,7 +53,7 @@ task                           # list all tasks
 3. Create an access token for each. Put them in `.env` (`BWS_CLUSTER_ACCESS_TOKEN`, `BWS_ACCESS_TOKEN`) together with `BWS_PROJECT_ID`.
 4. Put the organization ID and project ID in `kubernetes/flux/cluster/cluster-settings.yaml`. If your account is on bitwarden.eu, change the two URLs there as well.
 
-**Backup bucket** (any S3-compatible provider): create a private bucket and an access key limited to that bucket. Put the bucket name and its S3 endpoint in `cluster-settings.yaml`. On **Backblaze B2**, also set the bucket's lifecycle rule to *Keep only the last version of the file*: B2 keeps deleted files as hidden versions by default, so the snapshots restic prunes and the WAL files CNPG expires would stay billed forever. Cloudflare R2 has no file versions, so it needs nothing extra.
+**Backup bucket** (Backblaze B2): create the account with **EU Central** selected at sign-up (the region reportedly can't be changed later), then a private bucket and an application key limited to that bucket. Put the bucket name in `cluster-settings.yaml`, and check `S3_ENDPOINT` and `S3_REGION` there against the endpoint on the bucket's page. Set the bucket's lifecycle rule to *Keep prior versions for this number of days*, with **30** days: B2 keeps deleted files as hidden versions, so this makes a delete undoable for 30 days (also one by a compromised cluster) while the snapshots restic prunes and the WAL files CNPG expires still stop being billed afterwards. It only protects you if the cluster's key can't permanently delete a version, so try that with the key before relying on it.
 
 **Cloudflare**: create an API token from the *Edit zone DNS* template, add the permission *Zone → Zone → Read*, and scope it to `sunnyvale.be`. It replaces the global API key you used before.
 

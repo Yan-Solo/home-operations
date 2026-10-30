@@ -6,6 +6,15 @@ metadata:
   name: immich-postgresql
 spec:
   retentionPolicy: 30d
+  # Backblaze B2 may reject the integrity checksums boto3 sends by default since 1.36
+  instanceSidecarConfiguration:
+    env:
+      - name: AWS_REQUEST_CHECKSUM_CALCULATION
+        value: when_required
+      - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+        value: when_required
+      - name: AWS_DEFAULT_REGION
+        value: ${S3_REGION}
   configuration:
     destinationPath: s3://${S3_BUCKET}/cnpg/immich
     endpointURL: ${S3_ENDPOINT}

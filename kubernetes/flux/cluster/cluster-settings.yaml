@@ -14,7 +14,8 @@ data:
   # If your Bitwarden account lives on bitwarden.eu, change both to .eu
   BWS_API_URL: https://api.bitwarden.com
   BWS_IDENTITY_URL: https://identity.bitwarden.com
-  # Off-site backups: any S3-compatible bucket (Backblaze B2, Cloudflare R2, ...). CHANGEME
-  # e.g. https://s3.eu-central-003.backblazeb2.com or https://<account-id>.r2.cloudflarestorage.com
-  S3_ENDPOINT: CHANGEME-S3-ENDPOINT
+  # Off-site backups: Backblaze B2, EU Central. Check the endpoint against the one on the
+  # bucket's page, and keep the region in sync with it. CHANGEME (the bucket name)
+  S3_ENDPOINT: https://s3.eu-central-003.backblazeb2.com
+  S3_REGION: eu-central-003
   S3_BUCKET: CHANGEME-BUCKET-NAME
