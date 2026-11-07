@@ -15,11 +15,11 @@ jobs:
   flux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           fetch-depth: 0
 
-      - uses: jdx/mise-action@v3
+      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
         with:
           install_args: "aqua:home-operations/flate aqua:yannh/kubeconform"
 
