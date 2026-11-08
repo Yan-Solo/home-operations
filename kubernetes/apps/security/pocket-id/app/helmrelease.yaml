@@ -23,7 +23,7 @@ spec:
           app:
             image:
               repository: ghcr.io/pocket-id/pocket-id
-              tag: v2.19.1-distroless
+              tag: v2.19.2-distroless
             env:
               APP_URL: https://id.sunnyvale.be
               TRUST_PROXY: "true"
