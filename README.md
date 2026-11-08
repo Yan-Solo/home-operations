@@ -80,6 +80,8 @@ Create these secrets in that project. The **name** must match exactly.
 
 Then run `task talos:secrets:init BWS_PROJECT_ID=<id>`. It generates the Talos cluster secrets and stores them in Bitwarden, so a lost laptop never locks you out of the cluster.
 
+`task bootstrap:check` tells you what's still missing: unfilled settings, a repo Flux can't read, unpushed commits, or a secret that isn't in Bitwarden yet. `task bootstrap:apps` runs it first.
+
 ---
 
 ## Migration (one shot, onto the EliteDesk)
@@ -103,8 +105,12 @@ The disks move from the old server into the EliteDesk 805 G6, so the old server 
    kubectl -n home-automation cp <home-assistant-pod>:/config ./backup/home-assistant
    ```
 4. **Check which IP your Telenet modem forwards 80/443 to**: `kubectl get svc -A | grep LoadBalancer`, the Envoy one. This repo pins Envoy to `192.168.0.60`; either change the forward or `lbipam.cilium.io/ips` in `kubernetes/apps/network/envoy-gateway/config/envoyproxy.yaml`.
-5. Shut the old server down. Move the disks and the **Zigbee dongle** into the EliteDesk. In the EliteDesk BIOS (F10), allow booting from USB and turn **Secure Boot off** (the standard Talos ISO isn't signed for it).
-6. **Leave the data disks unconnected for the install.** Then the installer can only see the OS disk.
+5. Shut the old server down. Move the disks and the **Zigbee dongle** into the EliteDesk. Memory goes in balanced so it all runs dual channel: one 16 GB and one 8 GB in DIMM3/4 (channel A), the same in DIMM1/2 (channel B). The slowest stick sets the speed for all of them.
+6. In the EliteDesk BIOS (F10):
+   - **Update System BIOS** first, from USB or hp.com: this is awkward to do once Talos runs and the box is in the garage.
+   - *Advanced → Boot Options*: **After Power Loss: Power On** (the default is Power Off, so a power cut would otherwise mean a walk to the garage), USB Storage Boot on, Network (PXE) Boot off, Prompt on Memory Size Change off.
+   - *Secure Boot Configuration*: **Legacy Support Disable and Secure Boot Disable** (the standard Talos ISO isn't signed for Secure Boot).
+7. **Leave the data disks unconnected for the install.** Then the installer can only see the OS disk.
 
 ### B. Install Talos (at your desk, once)
 
@@ -115,7 +121,7 @@ talhelper genurl image --config-file talos/talconfig.yaml  # ISO with the amdgpu
 Write the ISO to a USB stick and boot the server from it. The console shows its DHCP IP.
 
 ```sh
-task talos:disks IP=<dhcp-ip>        # double-check the serials match what you filled in
+task talos:disks IP=<dhcp-ip>        # double-check the serials, and that there's one physical NIC (the static IP uses `physical: true`)
 task talos:install IP=<dhcp-ip>      # installs to the OS disk and reboots onto 192.168.0.50
 ```
 Shut down, plug the data disks back in, and move the box to the garage. On this boot Talos formats them:

@@ -49,6 +49,7 @@ nodes:
           officialExtensions:
             - siderolabs/amdgpu # firmware for the iGPU (Vega 7), used by Jellyfin VAAPI
             - siderolabs/amd-ucode
+            - siderolabs/realtek-firmware # firmware for the onboard NIC (RTL8111FPH, r8169 driver)
     patches:
       - "@./patches/node/volumes.yaml"
 

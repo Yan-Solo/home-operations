@@ -2,6 +2,34 @@
 version: "3"
 
 tasks:
+  check:
+    desc: Check what Flux needs before `bootstrap:apps` - settings filled in, repo public and pushed, secrets in Bitwarden
+    silent: true
+    preconditions:
+      - sh: test -n "$BWS_ACCESS_TOKEN" && test -n "$BWS_PROJECT_ID"
+        msg: BWS_ACCESS_TOKEN or BWS_PROJECT_ID is not set (see .env.example)
+    cmds:
+      - |
+        failed=0
+        settings={{.KUBERNETES_DIR}}/flux/cluster/cluster-settings.yaml
+        if grep -q CHANGEME- "$settings"; then
+          echo "Fill in cluster-settings.yaml:"; grep CHANGEME- "$settings"; failed=1
+        fi
+        url=$(grep -oE 'https://github.com/[^ ]+' {{.KUBERNETES_DIR}}/apps/flux-system/flux-instance/app/helm/values.yaml | head -1)
+        if ! remote=$(GIT_TERMINAL_PROMPT=0 git -c credential.helper= ls-remote "$url" HEAD 2>/dev/null); then
+          echo "Flux can't read $url without credentials: make the repo public"; failed=1
+        elif [ "${remote%%[[:space:]]*}" != "$(git rev-parse HEAD)" ]; then
+          echo "$url isn't at your local HEAD: Flux deploys what is pushed"; failed=1
+        fi
+        have=$(bws secret list "$BWS_PROJECT_ID" --output json | jq -r '.[].key') || exit 1
+        need=$(find {{.KUBERNETES_DIR}} -name '*.yaml' -print0 \
+          | xargs -0 yq ea -N 'select(.kind == "ExternalSecret") | (.spec.data[].remoteRef.key, .spec.dataFrom[].extract.key)' 2>/dev/null \
+          | grep -v '^---' | sort -u)
+        for key in $need; do
+          if ! grep -qx "$key" <<<"$have"; then echo "Missing in Bitwarden: $key"; failed=1; fi
+        done
+        [ "$failed" = 0 ] && echo "Ready to bootstrap" || exit 1
+
   apps:
     desc: Install Cilium, CoreDNS and Flux; Flux then deploys everything else from git
     preconditions:
@@ -10,6 +38,7 @@ tasks:
       - sh: test -f "$KUBECONFIG"
         msg: No kubeconfig yet - run `task talos:bootstrap` first
     cmds:
+      - task: check
       - until kubectl get nodes >/dev/null 2>&1; do echo "waiting for the API server..."; sleep 5; done
       - kubectl apply --server-side -f {{.KUBERNETES_DIR}}/apps/external-secrets/namespace.yaml -f {{.KUBERNETES_DIR}}/apps/flux-system/namespace.yaml
       - >-

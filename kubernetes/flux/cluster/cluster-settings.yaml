@@ -8,9 +8,8 @@ metadata:
   namespace: flux-system
 data:
   # Bitwarden Secrets Manager (Organization settings > Organization ID, and the project's ID)
-  # CHANGEME
-  BWS_ORGANIZATION_ID: CHANGEME-ORGANIZATION-ID
-  BWS_PROJECT_ID: CHANGEME-PROJECT-ID
+  BWS_ORGANIZATION_ID: a80baa5a-41c1-4d53-810d-b4f101770f00
+  BWS_PROJECT_ID: 42eb53ac-f805-4bc0-add6-b4f1017b40cc
   # If your Bitwarden account lives on bitwarden.eu, change both to .eu
   BWS_API_URL: https://api.bitwarden.com
   BWS_IDENTITY_URL: https://identity.bitwarden.com

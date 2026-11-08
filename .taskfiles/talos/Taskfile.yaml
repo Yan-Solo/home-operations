@@ -7,12 +7,13 @@ vars:
 
 tasks:
   disks:
-    desc: "List disks and filesystems of a node booted from the Talos ISO (task talos:disks IP=192.168.0.x)"
+    desc: "List disks, filesystems and network links of a node booted from the Talos ISO (task talos:disks IP=192.168.0.x)"
     requires:
       vars: [IP]
     cmds:
       - talosctl get disks --insecure --nodes {{.IP}}
       - talosctl get discoveredvolumes --insecure --nodes {{.IP}}
+      - talosctl get links --insecure --nodes {{.IP}}
 
   secrets:init:
     desc: Generate the Talos cluster secrets once and store them in Bitwarden Secrets Manager
