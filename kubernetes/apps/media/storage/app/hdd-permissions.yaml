@@ -14,7 +14,7 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: chown
-          image: docker.io/library/busybox:1.37.0
+          image: docker.io/library/busybox:1.38.0
           command: ["chown", "568:568", "/media"]
           volumeMounts:
             - name: media
