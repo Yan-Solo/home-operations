@@ -33,7 +33,7 @@ spec:
           app:
             image:
               repository: docker.io/grafana/mimir
-              tag: 3.2.3
+              tag: 3.2.4
             args:
               - -target=all
               - -config.file=/etc/mimir/mimir.yaml
