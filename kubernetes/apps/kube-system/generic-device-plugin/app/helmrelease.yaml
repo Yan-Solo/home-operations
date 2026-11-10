@@ -39,6 +39,8 @@ spec:
                   - paths:
                       - path: /dev/serial/by-id/usb-ITEAD_SONOFF_Zigbee_3.0_USB_Dongle_Plus_V2_20230829184048-if00
                         mountPath: /dev/ttyACM0
+            # The default /dev/termination-log can't be created inside the read-only /dev mount
+            terminationMessagePath: /tmp/termination-log
             probes:
               liveness: &probe
                 enabled: true
