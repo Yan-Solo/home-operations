@@ -27,8 +27,10 @@ spec:
       persistence:
         library:
           existingClaim: pictures
-      configuration: {}
-      configurationKind: ConfigMap
+      # Server settings come from this Secret (rendered by ./externalsecret.yaml) instead of
+      # the database, so they're read-only in Administration > Settings
+      existingConfiguration: immich-config
+      configurationKind: Secret
 
     valkey:
       enabled: true
