@@ -53,6 +53,7 @@ metadata:
   name: immich-library
 spec:
   sourcePVC: pictures
+  paused: ${VOLSYNC_PAUSED:=false}
   trigger:
     schedule: "0 4 * * *"
   restic:

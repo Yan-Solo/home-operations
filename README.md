@@ -168,7 +168,7 @@ flux get ks -A --watch
 
 4. **The *arr apps** start empty: point them at `/media`, `/downloads` (SABnzbd) and `/qbittorrent-downloads`. Their auth is set to *External*, because Pocket ID guards them at the gateway.
 
-5. **Trigger a first backup** of everything: `task volsync:list`, then `task volsync:snapshot APP=<app> NS=<ns>`. The photo library (`immich-library`) runs nightly at 04:00; the first run uploads everything and takes a while.
+5. **Trigger a first backup** of everything. If `VOLSYNC_PAUSED` in `cluster-settings.yaml` is still `"true"`, set it to `"false"` and push first. Then: `task volsync:list`, then `task volsync:snapshot APP=<app> NS=<ns>`. The photo library (`immich-library`) runs nightly at 04:00; the first run uploads everything and takes a while.
 
 ---
 

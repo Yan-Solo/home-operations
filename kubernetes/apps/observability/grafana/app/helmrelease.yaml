@@ -27,9 +27,10 @@ spec:
         reporting_enabled: false
       news:
         news_feed_enabled: false
+      auth.basic.enabled: false
       auth.generic_oauth:
         enabled: true
-        name: Pocket ID
+        name: Sunnyvale
         icon: signin
         scopes: openid email profile groups
         auth_url: https://id.sunnyvale.be/authorize
