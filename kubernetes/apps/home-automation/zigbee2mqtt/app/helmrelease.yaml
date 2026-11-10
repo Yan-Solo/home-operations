@@ -32,10 +32,10 @@ spec:
                 cpu: 10m
                 memory: 128Mi
                 # The USB dongle at /dev/ttyACM0, from generic-device-plugin (kube-system)
-                squat.ai/zigbee: 1
+                devic.es/zigbee: 1
               limits:
                 memory: 512Mi
-                squat.ai/zigbee: 1
+                devic.es/zigbee: 1
     service:
       zigbee2mqtt:
         controller: zigbee2mqtt

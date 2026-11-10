@@ -22,7 +22,7 @@ spec:
               repository: ghcr.io/squat/generic-device-plugin
               tag: latest@sha256:8dc84958301f054bf72d9753a7a2c9af3d6642a9844b34d1171b3f2cdb4a15f6
             args:
-              # Hands out the AMD iGPU (/dev/dri) as the resource squat.ai/dri.
+              # Hands out the AMD iGPU (/dev/dri) as the resource devic.es/dri.
               # count: how many pods may use it at the same time.
               - --device
               - |
@@ -31,7 +31,7 @@ spec:
                   - count: 3
                     paths:
                       - path: /dev/dri
-              # The Sonoff Zigbee dongle as squat.ai/zigbee, for Zigbee2MQTT.
+              # The Sonoff Zigbee dongle as devic.es/zigbee, for Zigbee2MQTT.
               - --device
               - |
                 name: zigbee

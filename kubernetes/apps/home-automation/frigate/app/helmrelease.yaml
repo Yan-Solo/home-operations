@@ -53,10 +53,10 @@ spec:
                 cpu: 200m
                 memory: 1Gi
                 # /dev/dri for VAAPI video decoding, from generic-device-plugin (kube-system)
-                squat.ai/dri: 1
+                devic.es/dri: 1
               limits:
                 memory: 4Gi
-                squat.ai/dri: 1
+                devic.es/dri: 1
     service:
       frigate:
         controller: frigate

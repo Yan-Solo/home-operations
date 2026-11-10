@@ -99,8 +99,8 @@ spec:
         k8s-views-pods:
           url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-pods.json
           datasource: Mimir
-        flux-cluster:
-          url: https://raw.githubusercontent.com/controlplaneio-fluxcd/flux-operator/main/config/monitoring/dashboards/cluster.json
+        flux-performance:
+          url: https://raw.githubusercontent.com/controlplaneio-fluxcd/flux-operator/main/config/monitoring/dashboards/flux-performance.json
           datasource: Mimir
         # grafana.com dashboards ask for a datasource input: 22604 refers to it by uid, the older
         # 7587 by name
