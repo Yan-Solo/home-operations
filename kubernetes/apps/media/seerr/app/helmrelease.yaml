@@ -2,11 +2,11 @@
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: jellyseerr
+  name: seerr
 spec:
   chartRef:
     kind: OCIRepository
-    name: jellyseerr
+    name: seerr
   interval: 1h
   values:
     defaultPodOptions:
@@ -17,7 +17,7 @@ spec:
         fsGroup: 568
         fsGroupChangePolicy: OnRootMismatch
     controllers:
-      jellyseerr:
+      seerr:
         strategy: Recreate
         containers:
           app:
@@ -43,25 +43,25 @@ spec:
               limits:
                 memory: 1Gi
     service:
-      jellyseerr:
-        controller: jellyseerr
+      seerr:
+        controller: seerr
         ports:
           http:
             port: 80
             targetPort: *port
     route:
-      jellyseerr:
-        hostnames: ["jellyseerr.sunnyvale.be"]
+      seerr:
+        hostnames: ["seerr.sunnyvale.be"]
         parentRefs:
           - name: envoy-gateway
             namespace: default
             sectionName: https
         rules:
           - backendRefs:
-              - identifier: jellyseerr
+              - identifier: seerr
                 port: 80
     persistence:
       config:
-        existingClaim: jellyseerr
+        existingClaim: seerr
         globalMounts:
           - path: /app/config
