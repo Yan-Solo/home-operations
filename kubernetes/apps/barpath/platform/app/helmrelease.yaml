@@ -17,3 +17,9 @@ spec:
         - ./deploy/helm/platform/values.yaml
         - ./deploy/helm/platform/values-prod.yaml
   interval: 1h
+  values:
+    media:
+      seaweedfs:
+        persistence:
+          # values-prod.yaml asks for local-path-hdd, which this cluster doesn't have
+          storageClass: local-hdd
