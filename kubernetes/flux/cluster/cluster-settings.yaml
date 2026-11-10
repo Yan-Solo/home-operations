@@ -17,4 +17,4 @@ data:
   # bucket's page, and keep the region in sync with it. CHANGEME (the bucket name)
   S3_ENDPOINT: https://s3.eu-central-003.backblazeb2.com
   S3_REGION: eu-central-003
-  S3_BUCKET: CHANGEME-BUCKET-NAME
+  S3_BUCKET: PENDING_BACKBLZE
