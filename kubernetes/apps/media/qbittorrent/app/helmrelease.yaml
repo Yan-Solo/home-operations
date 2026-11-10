@@ -74,10 +74,6 @@ spec:
           - path: /config
       tmp:
         type: emptyDir
-      media:
-        existingClaim: media
-        globalMounts:
-          - path: /media
       qbittorrent-downloads:
         existingClaim: qbittorrent-downloads
         globalMounts:

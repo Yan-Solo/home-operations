@@ -77,15 +77,7 @@ spec:
           - path: /config
       tmp:
         type: emptyDir
-      media:
-        existingClaim: media
-        globalMounts:
-          - path: /media
       sab-downloads:
         existingClaim: sab-downloads
         globalMounts:
-          - path: /downloads
-      qbittorrent-downloads:
-        existingClaim: qbittorrent-downloads
-        globalMounts:
-          - path: /qbittorrent-downloads
+          - path: /sab-downloads

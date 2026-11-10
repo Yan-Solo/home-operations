@@ -166,7 +166,7 @@ flux get ks -A --watch
    ```
    In the restored Zigbee2MQTT `configuration.yaml`, point `mqtt.server` at `mqtt://mosquitto.home-automation.svc.cluster.local` (the env vars in the HelmRelease already override it).
 
-4. **The *arr apps** start empty: point them at `/media`, `/downloads` (SABnzbd) and `/qbittorrent-downloads`. Their auth is set to *External*, because Pocket ID guards them at the gateway.
+4. **The *arr apps** start empty: point them at `/media`, `/sab-downloads` and `/qbittorrent-downloads`. Their auth is set to *External*, because Pocket ID guards them at the gateway.
 
 5. **Trigger a first backup** of everything: `task volsync:list`, then `task volsync:snapshot APP=<app> NS=<ns>`. The photo library (`immich-library`) runs nightly at 04:00; the first run uploads everything and takes a while.
 

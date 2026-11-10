@@ -82,7 +82,7 @@ spec:
       sab-downloads:
         existingClaim: sab-downloads
         globalMounts:
-          - path: /downloads
+          - path: /sab-downloads
       qbittorrent-downloads:
         existingClaim: qbittorrent-downloads
         globalMounts:
