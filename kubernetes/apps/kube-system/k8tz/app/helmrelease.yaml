@@ -1,0 +1,33 @@
+---
+# Sets the timezone of every new pod (outside kube-system): it adds TZ and mounts the
+# zoneinfo files through an init container, so apps don't each need `TZ: Europe/Brussels`.
+# CronJobs get `timeZone` too, so their schedules are Brussels time.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: k8tz
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: k8tz
+  interval: 1h
+  values:
+    namespace: null # install into kube-system (the Kustomization's targetNamespace)
+    createNamespace: false
+    timezone: Europe/Brussels
+    cronJobTimeZone: true
+    webhook:
+      # If k8tz is down (e.g. right after a reboot), pods still start, just in UTC, instead
+      # of every pod creation in the cluster being refused
+      failurePolicy: Ignore
+      certManager:
+        enabled: true
+        issuerRef:
+          name: k8tz-webhook-issuer
+          kind: Issuer
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        memory: 128Mi

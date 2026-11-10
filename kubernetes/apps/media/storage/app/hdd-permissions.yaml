@@ -1,0 +1,25 @@
+---
+# hostPath volumes ignore fsGroup, so the media apps (uid 568) can't write to a freshly
+# created /var/mnt/hdd/media. This hands the top folder to them once; it only touches the
+# folder itself, so re-runs are instant. pictures stays root-owned (Immich runs as root).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hdd-permissions
+  annotations:
+    kustomize.toolkit.fluxcd.io/force: enabled # Job templates are immutable
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: chown
+          image: docker.io/library/busybox:1.38.0
+          command: ["chown", "568:568", "/media"]
+          volumeMounts:
+            - name: media
+              mountPath: /media
+      volumes:
+        - name: media
+          persistentVolumeClaim:
+            claimName: media

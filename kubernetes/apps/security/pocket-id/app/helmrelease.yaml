@@ -1,0 +1,73 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: pocket-id
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: pocket-id
+  interval: 1h
+  values:
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 568
+        runAsGroup: 568
+        fsGroup: 568
+        fsGroupChangePolicy: OnRootMismatch
+    controllers:
+      pocket-id:
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: ghcr.io/pocket-id/pocket-id
+              tag: v2.19.2-distroless
+            env:
+              APP_URL: https://id.sunnyvale.be
+              TRUST_PROXY: "true"
+              ANALYTICS_DISABLED: "true"
+            envFrom:
+              - secretRef:
+                  name: pocket-id-secret
+            probes:
+              liveness: &probe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /healthz
+                    port: &port 1411
+              readiness: *probe
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop: ["ALL"]
+            resources:
+              requests:
+                cpu: 10m
+                memory: 64Mi
+              limits:
+                memory: 256Mi
+    service:
+      pocket-id:
+        controller: pocket-id
+        ports:
+          http:
+            port: *port
+    route:
+      pocket-id:
+        hostnames: ["id.sunnyvale.be"]
+        parentRefs:
+          - name: envoy-gateway
+            namespace: default
+            sectionName: https
+    persistence:
+      data:
+        existingClaim: pocket-id
+        globalMounts:
+          - path: /app/data
+      tmp:
+        type: emptyDir

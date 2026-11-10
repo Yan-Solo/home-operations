@@ -1,0 +1,29 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: radarr
+  namespace: flux-system
+spec:
+  components:
+    - ../../../../components/volsync
+    - ../../../../components/oidc
+  dependsOn:
+    - name: media-storage
+    - name: volsync
+    - name: external-secrets-stores
+    - name: envoy-gateway-config
+  interval: 1h
+  path: ./kubernetes/apps/media/radarr/app
+  postBuild:
+    substitute:
+      APP: radarr
+      VOLSYNC_CAPACITY: 2Gi
+    substituteFrom:
+      - kind: ConfigMap
+        name: cluster-settings
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  targetNamespace: media

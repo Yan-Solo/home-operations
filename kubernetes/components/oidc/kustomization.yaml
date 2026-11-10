@@ -1,0 +1,10 @@
+---
+# Puts a Pocket ID login in front of the HTTPRoute named ${APP}, at the gateway.
+# For apps without their own authentication (or admin tools you don't want public).
+# All protected apps share the Pocket ID client "gateway"; add
+# https://<host>/oauth2/callback for every protected host to that client's callback URLs.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+resources:
+  - ./externalsecret.yaml
+  - ./securitypolicy.yaml

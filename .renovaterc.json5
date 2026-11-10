@@ -1,0 +1,74 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: [
+    "github>home-operations/renovate-presets#11.0.0",
+    "github>home-operations/renovate-presets//apps/cnpg.json5#11.0.0",
+    ":semanticCommits",
+    ":timezone(Europe/Brussels)",
+  ],
+  dependencyDashboardTitle: "Renovate Dashboard",
+  ignorePaths: ["**/archive/**"],
+  flux: {
+    managerFilePatterns: ["/kubernetes/.+\\.ya?ml$/"],
+  },
+  "helm-values": {
+    managerFilePatterns: ["/kubernetes/.+/helm/values\\.ya?ml$/", "/kubernetes/.+/helmrelease\\.ya?ml$/"],
+  },
+  helmfile: {
+    // bootstrap/helmfile.yaml.gotmpl reads its versions from the OCIRepositories
+    enabled: false,
+  },
+  kubernetes: {
+    managerFilePatterns: ["/kubernetes/.+\\.ya?ml$/"],
+  },
+  packageRules: [
+    {
+      description: "Automerge patch updates of everything once CI is green",
+      matchUpdateTypes: ["patch", "digest"],
+      matchCurrentVersion: "!/^0/",
+      automerge: true,
+      automergeType: "pr",
+      ignoreTests: false,
+    },
+    {
+      description: "Apps also automerge minor updates; infrastructure minors (Cilium, Envoy Gateway, CNPG, ...) wait for review",
+      matchFileNames: [
+        "kubernetes/apps/media/**",
+        "kubernetes/apps/home-automation/**",
+        "kubernetes/apps/apps/**",
+        "kubernetes/apps/security/**",
+      ],
+      matchUpdateTypes: ["minor"],
+      matchCurrentVersion: "!/^0/",
+      automerge: true,
+      automergeType: "pr",
+      ignoreTests: false,
+    },
+    {
+      description: "Never automerge Talos or Kubernetes - they need `task talos:upgrade-*`",
+      matchPackageNames: ["/siderolabs/", "/kubernetes/kubernetes/"],
+      automerge: false,
+    },
+    {
+      description: "talosctl (.mise.toml) moves with the cluster's Talos version (talos/talenv.yaml)",
+      matchPackageNames: ["/siderolabs/talos/", "/siderolabs/installer/"],
+      groupName: "talos",
+    },
+    {
+      description: "kubectl (.mise.toml) moves with the cluster's Kubernetes version (talos/talenv.yaml)",
+      matchPackageNames: ["/kubernetes/kubernetes/", "/siderolabs/kubelet/"],
+      groupName: "kubernetes",
+    },
+    {
+      description: "Group Flux operator and instance charts",
+      matchPackageNames: ["/flux-operator/", "/flux-instance/"],
+      groupName: "flux-operator",
+    },
+    {
+      description: "Immich: server and machine-learning move together",
+      matchPackageNames: ["/immich/"],
+      groupName: "immich",
+      automerge: false,
+    },
+  ],
+}

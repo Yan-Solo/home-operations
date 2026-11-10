@@ -1,0 +1,106 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: jellyfin
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: jellyfin
+  interval: 1h
+  values:
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 568
+        runAsGroup: 568
+        fsGroup: 568
+        fsGroupChangePolicy: OnRootMismatch
+        # render/video groups for /dev/dri (handed out by generic-device-plugin)
+        supplementalGroups: [44, 105]
+    controllers:
+      jellyfin:
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: docker.io/jellyfin/jellyfin
+              tag: "12.4"
+            env:
+              JELLYFIN_PublishedServerUrl: https://jellyfin.sunnyvale.be
+              JELLYFIN_FFmpeg__probesize: 50000000
+              JELLYFIN_FFmpeg__analyzeduration: 50000000
+            probes:
+              liveness: &probe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /health
+                    port: &port 8096
+              readiness: *probe
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /health
+                    port: *port
+                  failureThreshold: 30
+                  periodSeconds: 10
+            resources:
+              requests:
+                cpu: 100m
+                memory: 512Mi
+                squat.ai/dri: 1
+              limits:
+                memory: 4Gi
+                squat.ai/dri: 1
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop: ["ALL"]
+    service:
+      jellyfin:
+        controller: jellyfin
+        type: LoadBalancer
+        annotations:
+          # Same LAN IP as before, for TVs and apps that skip the domain
+          lbipam.cilium.io/ips: 192.168.0.61
+        ports:
+          http:
+            port: 80
+            targetPort: *port
+          http-native:
+            port: *port
+    route:
+      jellyfin:
+        hostnames: ["jellyfin.sunnyvale.be"]
+        parentRefs:
+          - name: envoy-gateway
+            namespace: default
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: jellyfin
+                port: 80
+    persistence:
+      config:
+        existingClaim: jellyfin
+        globalMounts:
+          - path: /config
+      media:
+        existingClaim: media
+        globalMounts:
+          - path: /media
+      cache:
+        type: emptyDir
+        globalMounts:
+          - path: /cache
+      transcode:
+        type: emptyDir
+        globalMounts:
+          - path: /config/transcodes
+      tmp:
+        type: emptyDir

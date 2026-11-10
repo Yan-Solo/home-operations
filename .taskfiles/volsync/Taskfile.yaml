@@ -1,0 +1,90 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: "3"
+
+tasks:
+  list:
+    desc: Show every backup and when it last ran
+    cmd: kubectl get replicationsources --all-namespaces
+
+  snapshot:
+    desc: "Back up one app right now (task volsync:snapshot APP=home-assistant NS=home-automation)"
+    requires:
+      vars: [APP, NS]
+    vars:
+      TS: '{{now | unixEpoch}}'
+    cmds:
+      - kubectl --namespace {{.NS}} patch replicationsource {{.APP}} --type merge -p '{"spec":{"trigger":{"manual":"{{.TS}}"}}}'
+      - kubectl --namespace {{.NS}} wait replicationsource {{.APP}} --for=jsonpath='{.status.lastManualSync}'={{.TS}} --timeout=30m
+
+  restore:
+    desc: "Restore a backup of an app into its PVC (task volsync:restore APP=home-assistant NS=home-automation [PREVIOUS=n] [AS_OF=2026-11-01T00:00:00Z])"
+    summary: |
+      Restores the newest backup by default. After a rebuild, the nightly backup may already
+      have saved the new, empty volume as the newest snapshot. Then pick an older one:
+        PREVIOUS=1                        skip the newest snapshot (2 skips two, ...)
+        AS_OF=2026-11-01T00:00:00Z        newest snapshot taken before this moment (RFC 3339)
+      List the snapshots with: restic snapshots (using the app's ${APP}-volsync-secret values).
+      When the PVC or the Flux Kustomization isn't named after the backup, pass them:
+        PVC=pictures KS=immich            the Immich photo library (APP=immich-library)
+    requires:
+      vars: [APP, NS]
+    vars:
+      PVC: '{{.PVC | default .APP}}'
+      KS: '{{.KS | default .APP}}'
+      PREVIOUS: '{{.PREVIOUS | default "0"}}'
+      AS_OF: '{{.AS_OF | default ""}}'
+      PUID:
+        sh: kubectl --namespace {{.NS}} get replicationsource {{.APP}} -o jsonpath='{.spec.restic.moverSecurityContext.runAsUser}'
+      PGID:
+        sh: kubectl --namespace {{.NS}} get replicationsource {{.APP}} -o jsonpath='{.spec.restic.moverSecurityContext.runAsGroup}'
+    cmds:
+      - flux --namespace flux-system suspend kustomization {{.KS}}
+      - kubectl --namespace {{.NS}} scale deployment,statefulset --selector app.kubernetes.io/instance={{.KS}} --replicas 0
+      - kubectl --namespace {{.NS}} wait pod --selector app.kubernetes.io/instance={{.KS}} --for=delete --timeout=5m
+      - |
+        kubectl apply --server-side -f - <<RD
+        apiVersion: volsync.backube/v1alpha1
+        kind: ReplicationDestination
+        metadata:
+          name: {{.APP}}-restore
+          namespace: {{.NS}}
+        spec:
+          trigger:
+            manual: restore-once
+          restic:
+            repository: {{.APP}}-volsync-secret
+            destinationPVC: {{.PVC}}
+            copyMethod: Direct
+            previous: {{.PREVIOUS}}
+            {{- if .AS_OF}}
+            restoreAsOf: "{{.AS_OF}}"
+            {{- end}}
+            cacheStorageClassName: local-ssd
+            moverSecurityContext:
+              runAsUser: {{.PUID}}
+              runAsGroup: {{.PGID}}
+              fsGroup: {{.PGID}}
+        RD
+      - kubectl --namespace {{.NS}} wait replicationdestination {{.APP}}-restore --for=jsonpath='{.status.latestMoverStatus.result}'=Successful --timeout=60m
+      - kubectl --namespace {{.NS}} delete replicationdestination {{.APP}}-restore
+      - flux --namespace flux-system resume kustomization {{.KS}}
+      - flux --namespace {{.NS}} reconcile helmrelease {{.KS}} --force
+
+  restore-all:
+    desc: "After a rebuild: restore every app backup, one by one (task volsync:restore-all [PREVIOUS=n] [AS_OF=...])"
+    summary: |
+      Runs volsync:restore for every ReplicationSource except the Immich photo library,
+      which lives on the HDD and survives a rebuild. Same PREVIOUS / AS_OF options as restore;
+      AS_OF is the safer choice here, since every app may have run a different number of
+      backups since the rebuild.
+    vars:
+      SOURCES:
+        sh: kubectl get replicationsources --all-namespaces --no-headers -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name | grep -v immich-library | awk '{print $1 "/" $2}'
+    cmds:
+      - for: {var: SOURCES}
+        task: restore
+        vars:
+          NS: '{{index (splitList "/" .ITEM) 0}}'
+          APP: '{{index (splitList "/" .ITEM) 1}}'
+          PREVIOUS: '{{.PREVIOUS | default "0"}}'
+          AS_OF: '{{.AS_OF | default ""}}'

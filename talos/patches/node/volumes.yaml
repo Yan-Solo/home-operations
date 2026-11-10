@@ -1,0 +1,33 @@
+# Disks: Talos itself lives on the OS SSD (installDiskSelector in talconfig.yaml), which it
+# uses whole for images, logs and etcd. The two data disks are below.
+
+# The storage SSD: app data (configs, databases, download folders). Formatted by Talos on
+# first boot. Mounted at /var/mnt/ssd and used by the `local-ssd` StorageClass.
+apiVersion: v1alpha1
+kind: UserVolumeConfig
+name: ssd
+provisioning:
+  diskSelector:
+    # Serial of the storage SSD (wiped on first boot!), not the OS SSD
+    match: disk.serial == "S819NT0LA47085R"
+  minSize: 50GiB
+  grow: true
+filesystem:
+  type: xfs
+---
+# The 6T HDD: media and the Immich photo library. Formatted by Talos on first boot, like
+# the SSD. Mounted at /var/mnt/hdd; `local-hdd` and the static volumes in
+# kubernetes/apps/media/storage use it. Talos never reformats a volume that already exists,
+# so later reinstalls keep the data.
+apiVersion: v1alpha1
+kind: UserVolumeConfig
+name: hdd
+provisioning:
+  diskSelector:
+    # WWID of the 6T HDD (wiped on first boot!). Talos reports no serial for this SATA disk
+    # (WD-WX32D80K41A2), so match on `talosctl get disk sda -o yaml` -> wwid instead.
+    match: disk.wwid == "naa.50014ee2be336795"
+  minSize: 1TiB
+  grow: true
+filesystem:
+  type: xfs

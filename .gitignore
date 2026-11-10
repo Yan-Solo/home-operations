@@ -1,0 +1,7 @@
+# Generated / sensitive files - never commit
+kubeconfig
+talos/clusterconfig/
+talos/talsecret.yaml
+.env
+.task/
+.private/

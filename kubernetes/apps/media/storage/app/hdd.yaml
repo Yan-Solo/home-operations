@@ -1,0 +1,57 @@
+---
+# The HDD, mounted by Talos at /var/mnt/hdd (UserVolumeConfig `hdd`).
+# Static volumes so the folders keep fixed, human-readable paths across rebuilds:
+#   /var/mnt/hdd/media     movies, series, books, audiobooks
+#   /var/mnt/hdd/pictures  Immich library (+ Immich's own database dumps in backups/)
+# The kubelet creates missing folders owned by root; ./hdd-permissions.yaml fixes media.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: media
+spec:
+  capacity:
+    storage: 6Ti
+  accessModes: ["ReadWriteMany"]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  hostPath:
+    path: /var/mnt/hdd/media
+    type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: media
+spec:
+  accessModes: ["ReadWriteMany"]
+  resources:
+    requests:
+      storage: 6Ti
+  storageClassName: ""
+  volumeName: media
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pictures
+spec:
+  capacity:
+    storage: 6Ti
+  accessModes: ["ReadWriteMany"]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  hostPath:
+    path: /var/mnt/hdd/pictures
+    type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pictures
+spec:
+  accessModes: ["ReadWriteMany"]
+  resources:
+    requests:
+      storage: 6Ti
+  storageClassName: ""
+  volumeName: pictures

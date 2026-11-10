@@ -1,0 +1,21 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: grafana
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: mimir
+    - name: loki
+    - name: tempo
+    - name: external-secrets-stores
+    - name: envoy-gateway-config
+    - name: openebs
+  interval: 1h
+  path: ./kubernetes/apps/observability/grafana/app
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  targetNamespace: observability

@@ -1,0 +1,30 @@
+# Cilium replaces kube-proxy
+apiVersion: v1alpha1
+kind: KubeProxyConfig
+enabled: false
+---
+# Expose metrics to Alloy
+apiVersion: v1alpha1
+kind: KubeControllerManagerConfig
+extraArgs:
+  bind-address: 0.0.0.0
+---
+apiVersion: v1alpha1
+kind: KubeSchedulerConfig
+extraArgs:
+  bind-address: 0.0.0.0
+---
+machine:
+  nodeLabels:
+    # Talos marks control-plane nodes as "not for LoadBalancers" by default. This is the
+    # only node, so the label would leave Envoy, Jellyfin and Home Assistant without an IP
+    # announced on the LAN.
+    node.kubernetes.io/exclude-from-external-load-balancers:
+      $$patch: delete # double $ because talhelper substitutes env variables in patches
+cluster:
+  # CoreDNS is deployed with Helm so we can add the sunnyvale.be override (see kubernetes/apps/kube-system/coredns)
+  coreDNS:
+    disabled: true
+  etcd:
+    extraArgs:
+      listen-metrics-urls: http://0.0.0.0:2381

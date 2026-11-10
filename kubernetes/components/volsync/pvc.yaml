@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ${APP}
+  annotations:
+    # Removing or renaming the app in git must not delete its data: delete the PVC by hand
+    kustomize.toolkit.fluxcd.io/prune: disabled
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: ${VOLSYNC_CAPACITY:=1Gi}
+  storageClassName: local-ssd

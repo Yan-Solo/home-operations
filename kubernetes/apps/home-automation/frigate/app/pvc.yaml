@@ -1,0 +1,15 @@
+---
+# Recordings and snapshots, on the HDD. Not backed up (VolSync only covers /config);
+# set the retention in Frigate's config so this doesn't fill the disk.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: frigate-media
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: disabled
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 500Gi
+  storageClassName: local-hdd

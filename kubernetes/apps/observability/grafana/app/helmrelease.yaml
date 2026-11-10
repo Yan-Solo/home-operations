@@ -1,0 +1,146 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: grafana
+spec:
+  chart:
+    spec:
+      chart: grafana
+      version: 14.4.0
+      sourceRef:
+        kind: HelmRepository
+        name: grafana-community
+  interval: 1h
+  values:
+    fullnameOverride: grafana
+    deploymentStrategy:
+      type: Recreate
+    envFromSecrets:
+      - name: grafana-secret
+    grafana.ini:
+      server:
+        root_url: https://grafana.sunnyvale.be
+      analytics:
+        check_for_updates: false
+        check_for_plugin_updates: false
+        reporting_enabled: false
+      news:
+        news_feed_enabled: false
+      auth.generic_oauth:
+        enabled: true
+        name: Pocket ID
+        icon: signin
+        scopes: openid email profile groups
+        auth_url: https://id.sunnyvale.be/authorize
+        token_url: https://id.sunnyvale.be/api/oidc/token
+        api_url: https://id.sunnyvale.be/api/oidc/userinfo
+        login_attribute_path: preferred_username
+        name_attribute_path: name
+        groups_attribute_path: groups
+        # Members of the Pocket ID group "admins" become Grafana admins
+        role_attribute_path: contains(groups[*], 'admins') && 'Admin' || 'Viewer'
+        allow_assign_grafana_admin: true
+        allow_sign_up: true
+        use_pkce: true
+    datasources:
+      datasources.yaml:
+        apiVersion: 1
+        datasources:
+          - name: Mimir
+            type: prometheus
+            uid: mimir
+            access: proxy
+            url: http://mimir.observability.svc.cluster.local:9009/prometheus
+            isDefault: true
+            jsonData:
+              prometheusType: Mimir
+              timeInterval: 1m
+          - name: Loki
+            type: loki
+            uid: loki
+            access: proxy
+            url: http://loki.observability.svc.cluster.local:3100
+          - name: Tempo
+            type: tempo
+            uid: tempo
+            access: proxy
+            url: http://tempo.observability.svc.cluster.local:3200
+            jsonData:
+              tracesToLogsV2:
+                datasourceUid: loki
+              serviceMap:
+                datasourceUid: mimir
+              nodeGraph:
+                enabled: true
+    dashboardProviders:
+      dashboardproviders.yaml:
+        apiVersion: 1
+        providers:
+          - name: default
+            orgId: 1
+            folder: ""
+            type: file
+            disableDeletion: false
+            editable: true
+            options:
+              path: /var/lib/grafana/dashboards/default
+    dashboards:
+      default:
+        node-exporter-full:
+          url: https://raw.githubusercontent.com/rfmoz/grafana-dashboards/master/prometheus/node-exporter-full.json
+          datasource: Mimir
+        k8s-views-global:
+          url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-global.json
+          datasource: Mimir
+        k8s-views-namespaces:
+          url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-namespaces.json
+          datasource: Mimir
+        k8s-views-pods:
+          url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-pods.json
+          datasource: Mimir
+        flux-cluster:
+          url: https://raw.githubusercontent.com/controlplaneio-fluxcd/flux-operator/main/config/monitoring/dashboards/cluster.json
+          datasource: Mimir
+        # grafana.com dashboards ask for a datasource input: 22604 refers to it by uid, the older
+        # 7587 by name
+        smartctl-exporter:
+          gnetId: 22604
+          revision: 4
+          datasource:
+            - name: DS_PROMETHEUS
+              value: mimir
+        blackbox-exporter:
+          gnetId: 7587
+          revision: 3
+          datasource:
+            - name: DS_SIGNCL-PROMETHEUS
+              value: Mimir
+    # Charts that ship dashboards as ConfigMaps (Cilium, CNPG, ...) are picked up automatically
+    sidecar:
+      dashboards:
+        enabled: true
+        searchNamespace: ALL
+        label: grafana_dashboard
+        folderAnnotation: grafana_folder
+        provider:
+          foldersFromFilesStructure: true
+      datasources:
+        enabled: true
+        searchNamespace: ALL
+    serviceMonitor:
+      enabled: true
+    route:
+      main:
+        enabled: true
+        hostnames: ["grafana.sunnyvale.be"]
+        parentRefs:
+          - name: envoy-gateway
+            namespace: default
+            sectionName: https
+    persistence:
+      enabled: true
+      size: 2Gi
+      storageClassName: local-ssd
+    testFramework:
+      enabled: false

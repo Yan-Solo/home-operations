@@ -1,0 +1,75 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: generic-device-plugin
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: generic-device-plugin
+  interval: 1h
+  values:
+    controllers:
+      generic-device-plugin:
+        type: daemonset
+        strategy: RollingUpdate
+        pod:
+          automountServiceAccountToken: false
+          priorityClassName: system-node-critical
+        containers:
+          app:
+            image:
+              repository: ghcr.io/squat/generic-device-plugin
+              tag: latest@sha256:8dc84958301f054bf72d9753a7a2c9af3d6642a9844b34d1171b3f2cdb4a15f6
+            args:
+              # Hands out the AMD iGPU (/dev/dri) as the resource squat.ai/dri.
+              # count: how many pods may use it at the same time.
+              - --device
+              - |
+                name: dri
+                groups:
+                  - count: 3
+                    paths:
+                      - path: /dev/dri
+              # The Sonoff Zigbee dongle as squat.ai/zigbee, for Zigbee2MQTT.
+              - --device
+              - |
+                name: zigbee
+                groups:
+                  - paths:
+                      - path: /dev/serial/by-id/usb-ITEAD_SONOFF_Zigbee_3.0_USB_Dongle_Plus_V2_20230829184048-if00
+                        mountPath: /dev/ttyACM0
+            probes:
+              liveness: &probe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /health
+                    port: 8080
+              readiness: *probe
+            resources:
+              requests:
+                cpu: 10m
+                memory: 10Mi
+              limits:
+                memory: 32Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop: ["ALL"]
+              seccompProfile:
+                type: RuntimeDefault
+    persistence:
+      device-plugin:
+        type: hostPath
+        hostPath: /var/lib/kubelet/device-plugins
+        globalMounts:
+          - path: /var/lib/kubelet/device-plugins
+      dev:
+        type: hostPath
+        hostPath: /dev
+        globalMounts:
+          - path: /dev
+            readOnly: true

@@ -1,0 +1,76 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: audiobookshelf
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: audiobookshelf
+  interval: 1h
+  values:
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 568
+        runAsGroup: 568
+        fsGroup: 568
+        fsGroupChangePolicy: OnRootMismatch
+    controllers:
+      audiobookshelf:
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: ghcr.io/advplyr/audiobookshelf
+              tag: 2.37.2
+            env:
+              PORT: &port 8080
+              CONFIG_PATH: /config
+              METADATA_PATH: /metadata
+            probes:
+              liveness: &probe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /healthcheck
+                    port: *port
+              readiness: *probe
+            resources:
+              requests:
+                cpu: 10m
+                memory: 128Mi
+              limits:
+                memory: 1Gi
+    service:
+      audiobookshelf:
+        controller: audiobookshelf
+        ports:
+          http:
+            port: 80
+            targetPort: *port
+    route:
+      audiobookshelf:
+        hostnames: ["audiobookshelf.sunnyvale.be"]
+        parentRefs:
+          - name: envoy-gateway
+            namespace: default
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: audiobookshelf
+                port: 80
+    persistence:
+      # config and metadata share one backed-up volume
+      data:
+        existingClaim: audiobookshelf
+        globalMounts:
+          - path: /config
+            subPath: config
+          - path: /metadata
+            subPath: metadata
+      media:
+        existingClaim: media
+        globalMounts:
+          - path: /audiobooks

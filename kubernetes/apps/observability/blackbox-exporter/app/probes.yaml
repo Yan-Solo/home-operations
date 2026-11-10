@@ -1,0 +1,65 @@
+---
+# Public hostnames: checks the gateway, the wildcard certificate and the app behind it.
+# Inside the cluster *.sunnyvale.be resolves straight to the gateway (see CoreDNS), so this
+# does not test the Telenet line or the modem's port forward.
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: web
+spec:
+  module: http_2xx
+  interval: 1m
+  prober:
+    url: blackbox-exporter.observability.svc.cluster.local:9115
+  targets:
+    staticConfig:
+      static:
+        - https://id.sunnyvale.be/healthz
+        - https://jellyfin.sunnyvale.be/health
+        - https://jellyseerr.sunnyvale.be/api/v1/status
+        - https://immich.sunnyvale.be/api/server/ping
+        - https://audiobookshelf.sunnyvale.be/healthcheck
+        - https://calibre.sunnyvale.be
+        - https://home-assistant.sunnyvale.be
+        - https://mealie.sunnyvale.be
+        - https://plik.sunnyvale.be/health
+        - https://grafana.sunnyvale.be/api/health
+---
+# Apps behind Pocket ID: their public URL only answers with a login redirect, so these go
+# to the Service directly.
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: internal
+spec:
+  module: http_2xx
+  interval: 1m
+  prober:
+    url: blackbox-exporter.observability.svc.cluster.local:9115
+  targets:
+    staticConfig:
+      static:
+        - http://sonarr.media.svc.cluster.local:8989/ping
+        - http://radarr.media.svc.cluster.local/ping
+        - http://prowlarr.media.svc.cluster.local:9696/ping
+        - http://bazarr.media.svc.cluster.local/health
+        - http://sabnzbd.media.svc.cluster.local/api?mode=version
+        - http://qbittorrent.media.svc.cluster.local
+        - http://shelfmark.media.svc.cluster.local:8084
+        - http://zigbee2mqtt.home-automation.svc.cluster.local
+---
+# Is the modem up, and does traffic get out to the internet?
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: network
+spec:
+  module: icmp
+  interval: 1m
+  prober:
+    url: blackbox-exporter.observability.svc.cluster.local:9115
+  targets:
+    staticConfig:
+      static:
+        - 192.168.0.1 # Telenet modem
+        - 1.1.1.1

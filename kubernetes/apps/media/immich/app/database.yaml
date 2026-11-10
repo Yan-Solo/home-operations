@@ -1,0 +1,64 @@
+---
+# CloudNativePG PostgreSQL cluster for Immich.
+#
+# Immich v3.x requires the `vectorchord` extension, which is not in stock
+# PostgreSQL images, so it is mounted in as an image volume.
+#
+# Named `immich-postgresql`: CNPG then exposes `immich-postgresql-rw` and
+# generates the `immich-postgresql-app` Secret that Immich reads below.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: immich-postgresql
+spec:
+  instances: 1
+  # With a single instance the PodDisruptionBudget would block draining the only node
+  # (Talos upgrades). Losing a few seconds of availability is fine here.
+  enablePDB: false
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.6-standard-trixie
+  bootstrap:
+    initdb:
+      database: immich
+      owner: immich
+  storage:
+    storageClass: local-ssd
+    size: 10Gi
+  postgresql:
+    shared_preload_libraries:
+      - vchord.so
+    extensions:
+      - name: vchord
+        image:
+          reference: ghcr.io/tensorchord/vchord-scratch:pg18-v1.1.1
+        dynamic_library_path:
+          - /usr/lib/postgresql/18/lib
+        extension_control_path:
+          - /usr/share/postgresql/18/
+  # Continuous WAL archiving + base backups to the S3 bucket (see ./backup.yaml)
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: immich-postgresql
+        # Folder in the bucket. A rebuilt cluster can't archive into a folder that already
+        # holds backups, so bump this on every rebuild (README > Rebuild from scratch, step 3).
+        serverName: immich-postgresql-v1
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: immich-postgresql
+spec:
+  name: immich
+  owner: immich
+  cluster:
+    name: immich-postgresql
+  extensions:
+    - name: vector
+      ensure: present
+    - name: vchord
+      ensure: present
+    - name: earthdistance
+      ensure: present
+    - name: cube
+      ensure: present

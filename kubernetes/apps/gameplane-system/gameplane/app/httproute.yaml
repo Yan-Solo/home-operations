@@ -1,0 +1,16 @@
+---
+# The dashboard. Gameplane has its own login (Pocket ID through OIDC), so no oidc component.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: gameplane
+spec:
+  hostnames: ["gameplane.sunnyvale.be"]
+  parentRefs:
+    - name: envoy-gateway
+      namespace: default
+      sectionName: https
+  rules:
+    - backendRefs:
+        - name: gameplane-web
+          port: 80

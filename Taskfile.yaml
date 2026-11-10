@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: "3"
+
+vars:
+  TALOS_DIR: "{{.ROOT_DIR}}/talos"
+  BOOTSTRAP_DIR: "{{.ROOT_DIR}}/bootstrap"
+  KUBERNETES_DIR: "{{.ROOT_DIR}}/kubernetes"
+
+env:
+  KUBECONFIG: "{{.ROOT_DIR}}/kubeconfig"
+  TALOSCONFIG: "{{.ROOT_DIR}}/talos/clusterconfig/talosconfig"
+
+includes:
+  talos: .taskfiles/talos
+  bootstrap: .taskfiles/bootstrap
+  volsync: .taskfiles/volsync
+
+tasks:
+  default:
+    silent: true
+    cmd: task --list
+
+  validate:
+    desc: Render every Flux Kustomization and HelmRelease offline, like CI does
+    cmd: flate test all --path {{.ROOT_DIR}}
+
+  reconcile:
+    desc: Make Flux pull the latest commit right now
+    cmd: flux reconcile kustomization flux-system --namespace flux-system --with-source

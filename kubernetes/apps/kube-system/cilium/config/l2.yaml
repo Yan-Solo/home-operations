@@ -1,0 +1,22 @@
+---
+# Same range MetalLB used. Pin a specific IP on a Service with the
+# annotation `lbipam.cilium.io/ips: 192.168.0.6x`.
+apiVersion: cilium.io/v2
+kind: CiliumLoadBalancerIPPool
+metadata:
+  name: lan
+spec:
+  allowFirstLastIPs: "Yes"
+  blocks:
+    - start: 192.168.0.60
+      stop: 192.168.0.70
+---
+apiVersion: cilium.io/v2alpha1
+kind: CiliumL2AnnouncementPolicy
+metadata:
+  name: lan
+spec:
+  loadBalancerIPs: true
+  nodeSelector:
+    matchLabels:
+      kubernetes.io/os: linux

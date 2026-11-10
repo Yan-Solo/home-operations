@@ -1,0 +1,22 @@
+---
+# Defaults for every route on the gateway.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: envoy-gateway
+  namespace: default
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: envoy-gateway
+  # Envoy aborts any response that takes longer than 15s by default, which cuts off
+  # Jellyfin streams, Immich exports and Plik downloads. 0s disables that limit;
+  # idle connections are still closed by Envoy's stream idle timeout.
+  timeout:
+    http:
+      requestTimeout: 0s
+  # Only text-like content types (HTML, JS, CSS, JSON...) are compressed; video is left alone
+  compressor:
+    - type: Brotli
+    - type: Gzip

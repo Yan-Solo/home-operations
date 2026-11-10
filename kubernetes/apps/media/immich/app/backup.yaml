@@ -1,0 +1,75 @@
+---
+# Database: point-in-time recovery from the S3 bucket, kept 30 days.
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: immich-postgresql
+spec:
+  retentionPolicy: 30d
+  # Backblaze B2 may reject the integrity checksums boto3 sends by default since 1.36
+  instanceSidecarConfiguration:
+    env:
+      - name: AWS_REQUEST_CHECKSUM_CALCULATION
+        value: when_required
+      - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+        value: when_required
+      - name: AWS_DEFAULT_REGION
+        value: ${S3_REGION}
+  configuration:
+    destinationPath: s3://${S3_BUCKET}/cnpg/immich
+    endpointURL: ${S3_ENDPOINT}
+    s3Credentials:
+      accessKeyId:
+        name: immich-s3-secret
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: immich-s3-secret
+        key: ACCESS_SECRET_KEY
+    wal:
+      compression: gzip
+    data:
+      compression: gzip
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: immich-postgresql
+spec:
+  schedule: "0 0 2 * * *" # daily 02:00 (CNPG cron has a seconds field)
+  immediate: true
+  backupOwnerReference: self
+  cluster:
+    name: immich-postgresql
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+---
+# Photo library: nightly restic backup of /var/mnt/hdd/pictures to the S3 bucket.
+# Immich writes its files as root, so the backup reads them as root.
+# thumbs/ and encoded-video/ are skipped: Immich regenerates them (Administration > Jobs).
+apiVersion: volsync.backube/v1alpha1
+kind: ReplicationSource
+metadata:
+  name: immich-library
+spec:
+  sourcePVC: pictures
+  trigger:
+    schedule: "0 4 * * *"
+  restic:
+    copyMethod: Direct
+    repository: immich-library-volsync-secret
+    # Skips every folder with a CACHEDIR.TAG file (written by the init container in ./helmrelease.yaml)
+    exclude:
+      caches: true
+    pruneIntervalDays: 14
+    retain:
+      daily: 7
+      weekly: 4
+      monthly: 6
+    cacheCapacity: 10Gi
+    cacheStorageClassName: local-ssd
+    cacheAccessModes: ["ReadWriteOnce"]
+    moverSecurityContext:
+      runAsUser: 0
+      runAsGroup: 0
+      fsGroup: 0

@@ -1,0 +1,77 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: mealie
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: mealie
+  interval: 1h
+  values:
+    defaultPodOptions:
+      enableServiceLinks: false
+      securityContext:
+        # The image starts as root and drops to PUID/PGID itself
+        fsGroup: 568
+        fsGroupChangePolicy: OnRootMismatch
+    controllers:
+      mealie:
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: ghcr.io/mealie-recipes/mealie
+              tag: v3.30.0
+            env:
+              # First login: changeme@example.com / MyPassword - change it right away
+              DB_ENGINE: sqlite
+              BASE_URL: https://mealie.sunnyvale.be
+              ALLOW_SIGNUP: "false"
+              API_PORT: &port 9000
+              API_DOCS: "true"
+              DATA_DIR: /app/data
+              PUID: "568"
+              PGID: "568"
+            probes:
+              liveness: &probe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /api/app/about
+                    port: *port
+                  initialDelaySeconds: 30
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  failureThreshold: 5
+              readiness: *probe
+            resources:
+              requests:
+                cpu: 10m
+                memory: 256Mi
+              limits:
+                memory: 1Gi
+    service:
+      mealie:
+        controller: mealie
+        ports:
+          http:
+            port: 80
+            targetPort: *port
+    route:
+      mealie:
+        hostnames: ["mealie.sunnyvale.be"]
+        parentRefs:
+          - name: envoy-gateway
+            namespace: default
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: mealie
+                port: 80
+    persistence:
+      data:
+        existingClaim: mealie
+        globalMounts:
+          - path: /app/data

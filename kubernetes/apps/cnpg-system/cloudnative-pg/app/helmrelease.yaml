@@ -1,0 +1,18 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: cloudnative-pg
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: cloudnative-pg
+  interval: 1h
+  values:
+    crds:
+      create: true
+    priorityClassName: system-cluster-critical
+    monitoring:
+      podMonitorEnabled: true
+      grafanaDashboard:
+        create: true

@@ -1,0 +1,20 @@
+---
+# Non-secret, account-specific values. Kustomizations that need them opt in with
+#   postBuild.substituteFrom: [{kind: ConfigMap, name: cluster-settings}]
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-settings
+  namespace: flux-system
+data:
+  # Bitwarden Secrets Manager (Organization settings > Organization ID, and the project's ID)
+  BWS_ORGANIZATION_ID: a80baa5a-41c1-4d53-810d-b4f101770f00
+  BWS_PROJECT_ID: 42eb53ac-f805-4bc0-add6-b4f1017b40cc
+  # If your Bitwarden account lives on bitwarden.eu, change both to .eu
+  BWS_API_URL: https://api.bitwarden.com
+  BWS_IDENTITY_URL: https://identity.bitwarden.com
+  # Off-site backups: Backblaze B2, EU Central. Check the endpoint against the one on the
+  # bucket's page, and keep the region in sync with it. CHANGEME (the bucket name)
+  S3_ENDPOINT: https://s3.eu-central-003.backblazeb2.com
+  S3_REGION: eu-central-003
+  S3_BUCKET: CHANGEME-BUCKET-NAME

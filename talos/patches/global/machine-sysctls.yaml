@@ -1,0 +1,9 @@
+apiVersion: v1alpha1
+kind: SysctlConfig
+params:
+  # *arr apps, Home Assistant and Jellyfin watch a lot of files
+  fs.inotify.max_user_watches: "1048576"
+  fs.inotify.max_user_instances: "8192"
+  # qBittorrent / QUIC buffers
+  net.core.rmem_max: "7500000"
+  net.core.wmem_max: "7500000"

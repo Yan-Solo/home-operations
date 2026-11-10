@@ -1,0 +1,76 @@
+---
+# Talos' own logs (machined, kubelet, etcd, containerd, ... and the kernel) never reach a
+# pod log file, so Alloy can't see them. Talos streams them as JSON lines over TCP to
+# 127.0.0.1 (talos/patches/global/machine-logging.yaml); this Fluent Bit listens there on the
+# host network and forwards them to Loki under {job="talos"}.
+# (Alloy's TCP log receivers are still experimental, hence this small extra collector.)
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: fluent-bit
+spec:
+  chart:
+    spec:
+      chart: fluent-bit
+      version: 0.58.3
+      sourceRef:
+        kind: HelmRepository
+        name: fluent
+  interval: 1h
+  values:
+    fullnameOverride: fluent-bit
+    kind: Deployment
+    replicaCount: 1
+    hostNetwork: true
+    dnsPolicy: ClusterFirstWithHostNet
+    env:
+      - name: NODE_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: spec.nodeName
+    # Metrics/health endpoint, on the host network
+    metricsPort: 2020
+    serviceMonitor:
+      enabled: true
+    resources:
+      requests:
+        cpu: 5m
+        memory: 32Mi
+      limits:
+        memory: 128Mi
+    config:
+      inputs: |
+        [INPUT]
+            Name   tcp
+            Tag    talos.service
+            Listen 127.0.0.1
+            Port   6050
+            Format json
+
+        [INPUT]
+            Name   tcp
+            Tag    talos.kernel
+            Listen 127.0.0.1
+            Port   6051
+            Format json
+      filters: |
+        [FILTER]
+            Name   modify
+            Match  talos.service
+            Rename talos-service service
+            Rename talos-level level
+
+        [FILTER]
+            Name   modify
+            Match  talos.kernel
+            Add    service kernel
+      outputs: |
+        [OUTPUT]
+            Name        loki
+            Match       talos.*
+            Host        loki.observability.svc.cluster.local
+            Port        3100
+            Labels      job=talos, node=${NODE_NAME}
+            Label_keys  $service
+            Remove_keys service
+            Line_format json

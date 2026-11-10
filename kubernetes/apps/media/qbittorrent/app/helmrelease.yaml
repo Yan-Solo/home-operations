@@ -1,0 +1,84 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: qbittorrent
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: qbittorrent
+  interval: 1h
+  values:
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 568
+        runAsGroup: 568
+        fsGroup: 568
+        fsGroupChangePolicy: OnRootMismatch
+    controllers:
+      qbittorrent:
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: ghcr.io/home-operations/qbittorrent
+              tag: 5.3.0
+            env:
+              QBT_WEBUI_PORT: &port 8080
+              QBT_TORRENTING_PORT: &torrent 6881
+            probes:
+              liveness: &probe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /api/v2/app/version
+                    port: *port
+              readiness: *probe
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop: ["ALL"]
+            resources:
+              requests:
+                cpu: 50m
+                memory: 512Mi
+              limits:
+                memory: 4Gi
+    service:
+      qbittorrent:
+        controller: qbittorrent
+        ports:
+          http:
+            port: 80
+            targetPort: *port
+          bittorrent:
+            port: *torrent
+    route:
+      qbittorrent:
+        hostnames: ["qbit.sunnyvale.be"]
+        parentRefs:
+          - name: envoy-gateway
+            namespace: default
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: qbittorrent
+                port: 80
+    persistence:
+      config:
+        existingClaim: qbittorrent
+        globalMounts:
+          - path: /config
+      tmp:
+        type: emptyDir
+      media:
+        existingClaim: media
+        globalMounts:
+          - path: /media
+      qbittorrent-downloads:
+        existingClaim: qbittorrent-downloads
+        globalMounts:
+          - path: /qbittorrent-downloads

@@ -1,0 +1,61 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: zigbee2mqtt
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: zigbee2mqtt
+  interval: 1h
+  values:
+    controllers:
+      zigbee2mqtt:
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: ghcr.io/koenkk/zigbee2mqtt
+              tag: 2.14.3
+            env:
+              ZIGBEE2MQTT_DATA: /data
+              # These override the matching keys in /data/configuration.yaml
+              ZIGBEE2MQTT_CONFIG_MQTT_SERVER: mqtt://mosquitto.home-automation.svc.cluster.local
+              # The adapter driver (ezsp/ember) comes from your restored configuration.yaml,
+              # since `ember` needs EmberZNet firmware 7.4+ on the dongle.
+              ZIGBEE2MQTT_CONFIG_SERIAL_PORT: /dev/ttyACM0
+              ZIGBEE2MQTT_CONFIG_FRONTEND_ENABLED: "true"
+              ZIGBEE2MQTT_CONFIG_FRONTEND_PORT: &port 8080
+              ZIGBEE2MQTT_CONFIG_HOMEASSISTANT_ENABLED: "true"
+            resources:
+              requests:
+                cpu: 10m
+                memory: 128Mi
+                # The USB dongle at /dev/ttyACM0, from generic-device-plugin (kube-system)
+                squat.ai/zigbee: 1
+              limits:
+                memory: 512Mi
+                squat.ai/zigbee: 1
+    service:
+      zigbee2mqtt:
+        controller: zigbee2mqtt
+        ports:
+          http:
+            port: 80
+            targetPort: *port
+    route:
+      zigbee2mqtt:
+        hostnames: ["zigbee2mqtt.sunnyvale.be"]
+        parentRefs:
+          - name: envoy-gateway
+            namespace: default
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: zigbee2mqtt
+                port: 80
+    persistence:
+      data:
+        existingClaim: zigbee2mqtt
+        globalMounts:
+          - path: /data

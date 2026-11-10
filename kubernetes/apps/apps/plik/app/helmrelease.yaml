@@ -1,0 +1,76 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: plik
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: plik
+  interval: 1h
+  values:
+    defaultPodOptions:
+      enableServiceLinks: false
+      securityContext:
+        # Container runs as user plik (UID/GID 1000)
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+    controllers:
+      plik:
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: docker.io/rootgg/plik
+              tag: 1.4.3
+            env:
+              # Store uploaded files and SQLite metadata on the persistent volume
+              PLIKD_DATA_BACKEND: file
+              PLIKD_DATA_BACKEND_CONFIG: '{"Directory":"/data/files"}'
+              PLIKD_METADATA_BACKEND_CONFIG: '{"Driver":"sqlite3","ConnectionString":"/data/plik.db"}'
+              # Require login to upload; download links stay public
+              PLIKD_FEATURE_AUTHENTICATION: forced
+              # Upload limits
+              PLIKD_MAX_FILE_SIZE_STR: 10GB
+              PLIKD_DEFAULT_TTL_STR: 7d
+              PLIKD_MAX_TTL_STR: 30d
+            probes:
+              liveness: &probe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /health
+                    port: &port 8080
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  failureThreshold: 5
+              readiness: *probe
+    service:
+      plik:
+        controller: plik
+        ports:
+          http:
+            port: 80
+            targetPort: *port
+    route:
+      plik:
+        hostnames: ["plik.sunnyvale.be"]
+        parentRefs:
+          - name: envoy-gateway
+            namespace: default
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: plik
+                port: 80
+    persistence:
+      # Uploaded files are temporary (max 30 days), so no backup
+      data:
+        type: persistentVolumeClaim
+        accessMode: ReadWriteOnce
+        size: 50Gi
+        storageClass: local-ssd
+        globalMounts:
+          - path: /data

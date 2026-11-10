@@ -1,0 +1,8 @@
+---
+# Rewrite the hashed ConfigMap name inside the HelmRelease, so a config change restarts Mimir
+nameReference:
+  - kind: ConfigMap
+    version: v1
+    fieldSpecs:
+      - path: spec/values/persistence/config/name
+        kind: HelmRelease

@@ -1,0 +1,13 @@
+# Talos service logs (machined, kubelet, etcd, containerd, ...) and kernel logs go to
+# Fluent Bit on the host network, which forwards them to Loki
+# (kubernetes/apps/observability/fluent-bit).
+machine:
+  logging:
+    destinations:
+      - endpoint: tcp://127.0.0.1:6050/
+        format: json_lines
+---
+apiVersion: v1alpha1
+kind: KmsgLogConfig
+name: fluent-bit
+url: tcp://127.0.0.1:6051/
