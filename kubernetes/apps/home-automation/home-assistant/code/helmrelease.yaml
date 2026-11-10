@@ -1,0 +1,119 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: home-assistant-code
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: home-assistant-code
+  interval: 1h
+  values:
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 568
+        runAsGroup: 568
+        fsGroup: 568
+        fsGroupChangePolicy: OnRootMismatch
+    controllers:
+      home-assistant-code:
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: ghcr.io/coder/code-server
+              tag: 4.143.1@sha256:377b66bec5645510ed52549bb00e648c273edc604d230a3f90fd2b2433afcb97
+            args:
+              # The gateway does the login (Pocket ID)
+              - --auth=none
+              - --bind-addr=0.0.0.0:8080
+              - --disable-telemetry
+              - --disable-update-check
+              # Settings and extensions live next to the config, like the old VS Code add-on
+              - --user-data-dir=/config/.vscode/data
+              - --extensions-dir=/config/.vscode/extensions
+              - /config
+            env:
+              HOME: /home/coder
+            probes:
+              liveness: &probe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /healthz
+                    port: &port 8080
+              readiness: *probe
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop: ["ALL"]
+            resources:
+              requests:
+                cpu: 10m
+                memory: 256Mi
+              limits:
+                memory: 1Gi
+    service:
+      home-assistant-code:
+        controller: home-assistant-code
+        ports:
+          http:
+            port: 8080
+            targetPort: *port
+    route:
+      home-assistant-code:
+        hostnames: ["home-assistant.sunnyvale.be"]
+        parentRefs:
+          - name: envoy-gateway
+            namespace: default
+            sectionName: https
+        rules:
+          # code-server uses relative URLs, so it needs the trailing slash
+          - matches:
+              - path:
+                  type: Exact
+                  value: /code
+            filters:
+              - type: RequestRedirect
+                requestRedirect:
+                  path:
+                    type: ReplaceFullPath
+                    replaceFullPath: /code/
+                  statusCode: 301
+          - matches:
+              - path:
+                  type: PathPrefix
+                  value: /code/
+            filters:
+              - type: URLRewrite
+                urlRewrite:
+                  path:
+                    type: ReplacePrefixMatch
+                    replacePrefixMatch: /
+            backendRefs:
+              - identifier: home-assistant-code
+                port: 8080
+          # The Pocket ID callback and logout: Envoy answers these itself, but only on a
+          # route the SecurityPolicy covers, and Home Assistant's own route doesn't
+          - matches:
+              - path:
+                  type: PathPrefix
+                  value: /oauth2/
+            backendRefs:
+              - identifier: home-assistant-code
+                port: 8080
+    persistence:
+      config:
+        # Home Assistant's own volume (ReadWriteOnce works here: both pods run on the one node)
+        existingClaim: home-assistant
+        globalMounts:
+          - path: /config
+      home:
+        type: emptyDir
+        globalMounts:
+          - path: /home/coder
+      tmp:
+        type: emptyDir
