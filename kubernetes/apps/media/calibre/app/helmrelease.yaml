@@ -52,4 +52,4 @@ spec:
       media:
         existingClaim: media
         globalMounts:
-          - path: /books
+          - path: /media
