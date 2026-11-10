@@ -18,5 +18,3 @@ data:
   S3_ENDPOINT: https://s3.eu-central-003.backblazeb2.com
   S3_REGION: eu-central-003
   S3_BUCKET: PENDING_BACKBLZE
-  # Pauses every VolSync backup. On while the backup bucket isn't set up yet
-  VOLSYNC_PAUSED: "true"

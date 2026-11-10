@@ -5,7 +5,6 @@ metadata:
   name: ${APP}
 spec:
   sourcePVC: ${APP}
-  paused: ${VOLSYNC_PAUSED:=false}
   trigger:
     schedule: "${VOLSYNC_SCHEDULE:=0 3 * * *}"
   restic:
