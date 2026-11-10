@@ -17,6 +17,11 @@ spec:
             image:
               repository: ghcr.io/calibrain/shelfmark
               tag: v1.6.2
+            env:
+              # The entrypoint (root) chowns /books, the whole media volume, to this user.
+              # Its default is 1000, which locks the other media apps (568) out.
+              PUID: "568"
+              PGID: "568"
             resources:
               requests:
                 cpu: 10m
@@ -57,7 +62,7 @@ spec:
         existingClaim: qbittorrent-downloads
         globalMounts:
           - path: /qbittorrent-downloads
-      books:
+      media:
         existingClaim: media
         globalMounts:
-          - path: /books
+          - path: /media
