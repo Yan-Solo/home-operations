@@ -7,7 +7,6 @@ metadata:
 spec:
   components:
     - ../../../../components/volsync
-    - ../../../../components/oidc
   dependsOn:
     - name: media-storage
     - name: volsync

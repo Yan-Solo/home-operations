@@ -16,10 +16,8 @@ spec:
       static:
         - https://id.sunnyvale.be/healthz
         - https://jellyfin.sunnyvale.be/health
-        - https://jellyseerr.sunnyvale.be/api/v1/status
         - https://immich.sunnyvale.be/api/server/ping
         - https://audiobookshelf.sunnyvale.be/healthcheck
-        - https://calibre.sunnyvale.be
         - https://home-assistant.sunnyvale.be
         - https://mealie.sunnyvale.be
         - https://plik.sunnyvale.be/health
@@ -43,6 +41,7 @@ spec:
         - http://radarr.media.svc.cluster.local/ping
         - http://prowlarr.media.svc.cluster.local:9696/ping
         - http://bazarr.media.svc.cluster.local/health
+        - http://seerr.media.svc.cluster.local/api/v1/status
         - http://sabnzbd.media.svc.cluster.local/api?mode=version
         - http://qbittorrent.media.svc.cluster.local
         - http://shelfmark.media.svc.cluster.local:8084
