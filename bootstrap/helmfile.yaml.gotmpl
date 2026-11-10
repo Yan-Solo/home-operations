@@ -52,6 +52,8 @@ releases:
       # Flux enables it as soon as Envoy Gateway and External Secrets are running.
       - web:
           enabled: false
+          httpRoute:
+            enabled: false
     needs: ["kube-system/coredns"]
 
   - name: flux-instance
