@@ -1,0 +1,105 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: open-webui
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: open-webui
+  interval: 1h
+  values:
+    defaultPodOptions:
+      enableServiceLinks: false
+    controllers:
+      open-webui:
+        # SQLite state, never run more than one replica
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: ghcr.io/open-webui/open-webui
+              tag: v0.13.0
+            env:
+              TZ: Europe/Brussels
+              WEBUI_URL: https://chat.sunnyvale.be
+              # Conduit needs websockets for streaming
+              ENABLE_WEBSOCKET_SUPPORT: "true"
+              # All models come from OmniRoute
+              ENABLE_OLLAMA_API: "false"
+              OPENAI_API_BASE_URL: http://omniroute.ai.svc:20128/v1
+              DEFAULT_MODELS: assistant
+              # Pocket ID login
+              ENABLE_OAUTH_SIGNUP: "true"
+              OAUTH_PROVIDER_NAME: Pocket ID
+              OPENID_PROVIDER_URL: https://id.sunnyvale.be/.well-known/openid-configuration
+              OPENID_REDIRECT_URI: https://chat.sunnyvale.be/oauth/oidc/callback
+              OAUTH_SCOPES: openid email profile
+              # Only Pocket ID logins. These and DEFAULT_MODELS are stored in the database on
+              # first start, later changes here are ignored
+              ENABLE_SIGNUP: "false"
+              ENABLE_LOGIN_FORM: "false"
+              ENABLE_PASSWORD_AUTH: "false"
+              # Who may sign in is decided by the allowed groups of the open-webui client in
+              # Pocket ID, so new accounts can chat right away
+              DEFAULT_USER_ROLE: user
+            envFrom:
+              - secretRef:
+                  name: open-webui-secret
+            probes:
+              # First start downloads the embedding model
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /health
+                    port: &port 8080
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  failureThreshold: 60
+              readiness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /health
+                    port: *port
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  failureThreshold: 5
+              liveness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /health
+                    port: *port
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  failureThreshold: 5
+    service:
+      open-webui:
+        controller: open-webui
+        ports:
+          http:
+            port: *port
+    # No Pocket ID policy at the gateway: Open WebUI does its own Pocket ID login and a second
+    # login in front breaks the Conduit app
+    route:
+      open-webui:
+        hostnames: ["chat.sunnyvale.be"]
+        parentRefs:
+          - name: envoy-gateway
+            namespace: default
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: open-webui
+                port: *port
+    persistence:
+      # SQLite database, uploads and model cache
+      data:
+        existingClaim: open-webui
+        globalMounts:
+          - path: /app/backend/data

@@ -4,3 +4,4 @@ kind: Kustomization
 resources:
   - ./namespace.yaml
   - ./omniroute/ks.yaml
+  - ./open-webui/ks.yaml

@@ -74,10 +74,13 @@ Create these secrets in that project. The **name** must match exactly.
 | `omniroute-storage-encryption-key` / `omniroute-api-key-secret` | `openssl rand -hex 32` each (**also save them in your password vault**: changing them makes OmniRoute's stored provider keys and issued gateway keys unusable) |
 | `omniroute-jwt-secret` | `openssl rand -base64 48` |
 | `omniroute-initial-password` | password for OmniRoute's own dashboard login |
+| `open-webui-secret-key` | `openssl rand -base64 32` |
+| `open-webui-omniroute-api-key` | after OmniRoute is up: a gateway key from its dashboard; use `placeholder` for now |
 | `frigate-tapo-username` / `frigate-tapo-password` | the Tapo C200's *Camera Account* (Tapo app → camera → Settings → Advanced settings → Camera Account) |
 | `gateway-oidc-client-id` / `gateway-oidc-client-secret` | after Pocket ID is up (see below); use `placeholder` for now |
 | `grafana-oidc-client-id` / `grafana-oidc-client-secret` | same |
 | `flux-oidc-client-id` / `flux-oidc-client-secret` | same |
+| `open-webui-oidc-client-id` / `open-webui-oidc-client-secret` | same |
 | `gameplane-oidc-client-id` / `gameplane-oidc-client-secret` | same |
 | `immich-oidc-client-id` / `immich-oidc-client-secret` | same |
 | `talos-secrets` | created by `task talos:secrets:init` |
@@ -142,7 +145,7 @@ flux get ks -A --watch
 
 ### C. After Flux is green
 
-1. **Pocket ID**: open https://id.sunnyvale.be/setup, create your admin user and register a passkey. Do this first, as soon as the `pocket-id` Kustomization is ready: until an admin exists, anyone who reaches `/setup` can become it, and your modem already forwards 443 to the gateway. If you'll be away from the keyboard, turn the port forward off until this is done. Create a group `admins` and add yourself. Then create five OIDC clients:
+1. **Pocket ID**: open https://id.sunnyvale.be/setup, create your admin user and register a passkey. Do this first, as soon as the `pocket-id` Kustomization is ready: until an admin exists, anyone who reaches `/setup` can become it, and your modem already forwards 443 to the gateway. If you'll be away from the keyboard, turn the port forward off until this is done. Create a group `admins` and add yourself. Then create six OIDC clients:
 
    | Client | Callback URL(s) | Bitwarden secrets |
    |---|---|---|
@@ -150,6 +153,7 @@ flux get ks -A --watch
    | `grafana` | `https://grafana.sunnyvale.be/login/generic_oauth` | `grafana-oidc-client-*` |
    | `gameplane` | `https://gameplane.sunnyvale.be/auth/oidc/helm/callback` | `gameplane-oidc-client-*` |
    | `immich` | `https://immich.sunnyvale.be/auth/login`, `https://immich.sunnyvale.be/user-settings`, `app.immich:///oauth-callback` | `immich-oidc-client-*` |
+   | `open-webui` | `https://chat.sunnyvale.be/oauth/oidc/callback` | `open-webui-oidc-client-*` |
    | `gateway` | `https://{sonarr,radarr,prowlarr,bazarr,sabnzbd,qbit,shelfmark,zigbee2mqtt,frigate,hubble,home-assistant,omniroute}.sunnyvale.be/oauth2/callback` (one line each) | `gateway-oidc-client-*` |
 
    Restrict each client to the `admins` group, paste the IDs and secrets into Bitwarden, and run `task reconcile`. External Secrets picks up the new values within an hour; `kubectl annotate es -A --all force-sync=$(date +%s) --overwrite` makes it immediate.
