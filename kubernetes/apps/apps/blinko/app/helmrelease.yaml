@@ -1,0 +1,94 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: blinko
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: blinko
+  interval: 1h
+  values:
+    defaultPodOptions:
+      enableServiceLinks: false
+    controllers:
+      blinko:
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: docker.io/blinkospace/blinko
+              tag: 1.8.9
+            env:
+              TZ: Europe/Brussels
+              # Needed for SSO callbacks and share links
+              NEXTAUTH_URL: &url https://blinko.sunnyvale.be
+              NEXT_PUBLIC_BASE_URL: *url
+              # Migrations run on every start
+              DATABASE_URL:
+                valueFrom:
+                  secretKeyRef:
+                    name: blinko-postgresql-app
+                    key: uri
+            envFrom:
+              - secretRef:
+                  name: blinko-secret
+            probes:
+              # First start runs the database migrations
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /
+                    port: &port 1111
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  failureThreshold: 30
+              liveness: &probe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /
+                    port: *port
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  failureThreshold: 5
+              readiness: *probe
+            resources:
+              requests:
+                cpu: 10m
+                memory: 256Mi
+              limits:
+                memory: 2Gi
+    service:
+      blinko:
+        controller: blinko
+        ports:
+          http:
+            port: *port
+    # No Pocket ID policy at the gateway: the mobile app talks to the API directly.
+    # The first account to register becomes the admin and closes sign-up, so register right
+    # after the first deploy. Pocket ID login is added in Settings > SSO as a custom provider
+    # (well-known https://id.sunnyvale.be/.well-known/openid-configuration), with the callback
+    # URL https://blinko.sunnyvale.be/api/auth/callback/<provider id>.
+    # AI: Settings > AI, OpenAI provider with endpoint http://omniroute.ai.svc:20128/v1 and an
+    # OmniRoute gateway key.
+    route:
+      blinko:
+        hostnames: ["blinko.sunnyvale.be"]
+        parentRefs:
+          - name: envoy-gateway
+            namespace: default
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: blinko
+                port: *port
+    persistence:
+      # Attachments and other local app data
+      data:
+        existingClaim: blinko
+        globalMounts:
+          - path: /app/.blinko

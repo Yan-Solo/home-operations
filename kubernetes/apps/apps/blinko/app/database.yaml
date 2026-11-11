@@ -1,0 +1,71 @@
+---
+# CloudNativePG cluster for Blinko: exposes `blinko-postgresql-rw` and generates the
+# `blinko-postgresql-app` Secret (key `uri`) that the HelmRelease uses as DATABASE_URL.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: blinko-postgresql
+spec:
+  instances: 1
+  # Single instance: a PodDisruptionBudget would block draining the node for Talos upgrades
+  enablePDB: false
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.6-standard-trixie
+  bootstrap:
+    initdb:
+      database: blinko
+      owner: blinko
+  storage:
+    storageClass: local-ssd
+    size: 2Gi
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: blinko-postgresql
+        # Bump on every rebuild (README > Rebuild from scratch, step 3)
+        serverName: blinko-postgresql-v1
+---
+# Database: point-in-time recovery from the S3 bucket, kept 30 days.
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: blinko-postgresql
+spec:
+  retentionPolicy: 30d
+  # Backblaze B2 may reject the integrity checksums boto3 sends by default since 1.36
+  instanceSidecarConfiguration:
+    env:
+      - name: AWS_REQUEST_CHECKSUM_CALCULATION
+        value: when_required
+      - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+        value: when_required
+      - name: AWS_DEFAULT_REGION
+        value: ${S3_REGION}
+  configuration:
+    destinationPath: s3://${S3_BUCKET}/cnpg/blinko
+    endpointURL: ${S3_ENDPOINT}
+    s3Credentials:
+      accessKeyId:
+        name: blinko-s3-secret
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: blinko-s3-secret
+        key: ACCESS_SECRET_KEY
+    wal:
+      compression: gzip
+    data:
+      compression: gzip
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: blinko-postgresql
+spec:
+  schedule: "0 30 2 * * *" # daily 02:30 (CNPG cron has a seconds field)
+  immediate: true
+  backupOwnerReference: self
+  cluster:
+    name: blinko-postgresql
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
