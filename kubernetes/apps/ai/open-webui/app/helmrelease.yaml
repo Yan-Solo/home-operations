@@ -29,6 +29,9 @@ spec:
               ENABLE_OLLAMA_API: "false"
               OPENAI_API_BASE_URL: http://omniroute.ai.svc:20128/v1
               DEFAULT_MODELS: assistant
+              # Every user sees every model. The OmniRoute key only lists the combos, so new
+              # combos show up without setting their visibility in the admin panel
+              BYPASS_MODEL_ACCESS_CONTROL: "true"
               # Pocket ID login
               ENABLE_OAUTH_SIGNUP: "true"
               OAUTH_PROVIDER_NAME: Pocket ID
