@@ -46,6 +46,7 @@ spec:
         - http://qbittorrent.media.svc.cluster.local
         - http://shelfmark.media.svc.cluster.local:8084
         - http://zigbee2mqtt.home-automation.svc.cluster.local
+        - http://omniroute.ai.svc.cluster.local:20128/healthz
 ---
 # Is the modem up, and does traffic get out to the internet?
 apiVersion: monitoring.coreos.com/v1

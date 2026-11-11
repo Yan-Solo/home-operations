@@ -1,0 +1,95 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: omniroute
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: omniroute
+  interval: 1h
+  values:
+    defaultPodOptions:
+      enableServiceLinks: false
+      securityContext:
+        # Image runs as the node user
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+    controllers:
+      omniroute:
+        # SQLite state, never run more than one replica
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: docker.io/diegosouzapw/omniroute
+              tag: 3.8.52
+            env:
+              DATA_DIR: /app/data
+              # Every /v1 call needs a gateway key
+              REQUIRE_API_KEY: "true"
+              # Dashboard is served over HTTPS behind Pocket ID
+              AUTH_COOKIE_SECURE: "true"
+              NEXT_PUBLIC_BASE_URL: https://omniroute.sunnyvale.be
+            envFrom:
+              - secretRef:
+                  name: omniroute-secret
+            probes:
+              liveness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /livez
+                    port: &port 20128
+                  initialDelaySeconds: 15
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  failureThreshold: 5
+              readiness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /healthz
+                    port: *port
+                  initialDelaySeconds: 15
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  failureThreshold: 5
+            resources:
+              requests:
+                cpu: 10m
+                memory: 256Mi
+              limits:
+                memory: 1Gi
+    # In-cluster clients call http://omniroute.ai.svc:20128/v1 directly with their own
+    # gateway key, without Pocket ID
+    service:
+      omniroute:
+        controller: omniroute
+        ports:
+          http:
+            port: *port
+    # Dashboard only: Pocket ID in front of it also keeps /v1 closed from outside the cluster.
+    # OmniRoute's own password login stays on.
+    route:
+      omniroute:
+        hostnames: ["omniroute.sunnyvale.be"]
+        parentRefs:
+          - name: envoy-gateway
+            namespace: default
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: omniroute
+                port: *port
+    persistence:
+      # SQLite database with providers, combos and gateway keys
+      data:
+        existingClaim: omniroute
+        globalMounts:
+          - path: /app/data

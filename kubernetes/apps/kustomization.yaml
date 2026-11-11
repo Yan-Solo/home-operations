@@ -15,5 +15,6 @@ resources:
   - ./media
   - ./home-automation
   - ./apps
+  - ./ai
   - ./barpath
   - ./gameplane-system

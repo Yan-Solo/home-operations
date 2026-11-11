@@ -71,6 +71,9 @@ Create these secrets in that project. The **name** must match exactly.
 | `volsync-restic-password` | `openssl rand -base64 32` (**also save it in your password vault**: without it the backups are unreadable) |
 | `pocket-id-encryption-key` | `openssl rand -base64 32` |
 | `barpath-github-token` | the GitHub token for barpath |
+| `omniroute-storage-encryption-key` / `omniroute-api-key-secret` | `openssl rand -hex 32` each (**also save them in your password vault**: changing them makes OmniRoute's stored provider keys and issued gateway keys unusable) |
+| `omniroute-jwt-secret` | `openssl rand -base64 48` |
+| `omniroute-initial-password` | password for OmniRoute's own dashboard login |
 | `frigate-tapo-username` / `frigate-tapo-password` | the Tapo C200's *Camera Account* (Tapo app → camera → Settings → Advanced settings → Camera Account) |
 | `gateway-oidc-client-id` / `gateway-oidc-client-secret` | after Pocket ID is up (see below); use `placeholder` for now |
 | `grafana-oidc-client-id` / `grafana-oidc-client-secret` | same |
@@ -147,7 +150,7 @@ flux get ks -A --watch
    | `grafana` | `https://grafana.sunnyvale.be/login/generic_oauth` | `grafana-oidc-client-*` |
    | `gameplane` | `https://gameplane.sunnyvale.be/auth/oidc/helm/callback` | `gameplane-oidc-client-*` |
    | `immich` | `https://immich.sunnyvale.be/auth/login`, `https://immich.sunnyvale.be/user-settings`, `app.immich:///oauth-callback` | `immich-oidc-client-*` |
-   | `gateway` | `https://{sonarr,radarr,prowlarr,bazarr,sabnzbd,qbit,shelfmark,zigbee2mqtt,frigate,hubble,home-assistant}.sunnyvale.be/oauth2/callback` (one line each) | `gateway-oidc-client-*` |
+   | `gateway` | `https://{sonarr,radarr,prowlarr,bazarr,sabnzbd,qbit,shelfmark,zigbee2mqtt,frigate,hubble,home-assistant,omniroute}.sunnyvale.be/oauth2/callback` (one line each) | `gateway-oidc-client-*` |
 
    Restrict each client to the `admins` group, paste the IDs and secrets into Bitwarden, and run `task reconcile`. External Secrets picks up the new values within an hour; `kubectl annotate es -A --all force-sync=$(date +%s) --overwrite` makes it immediate.
 
