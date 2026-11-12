@@ -83,7 +83,3 @@ spec:
         existingClaim: sab-downloads
         globalMounts:
           - path: /sab-downloads
-      qbittorrent-downloads:
-        existingClaim: qbittorrent-downloads
-        globalMounts:
-          - path: /qbittorrent-downloads

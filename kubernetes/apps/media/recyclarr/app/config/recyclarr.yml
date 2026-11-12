@@ -1,0 +1,44 @@
+# yaml-language-server: $schema=https://schemas.recyclarr.dev/latest/config-schema.json
+#
+# Quality profiles from TRaSH Guides, tuned for direct play on the Sony XR-55A80J (Google TV, Moonfin):
+#   - 2160p WEB-DL first, 1080p WEB-DL as fallback: HEVC + DD+/Atmos, ~15-40 Mbps. Remuxes and UHD
+#     Bluray encodes are left out on purpose: the TV's Ethernet is 100 Mbps, and Android TV apps
+#     can't pass TrueHD/DTS-HD through, so those would make Jellyfin transcode the audio.
+#   - Dolby Vision preferred (the TV plays DV profile 5 and 8), HDR10 otherwise. No HDR10+ boost:
+#     the TV has no HDR10+, those releases just play as HDR10.
+#   - AV1 stays blocked (guide default); the TV decodes it, but scene/P2P AV1 targets small files.
+# Profile contents (tiers, unwanted formats, streaming services, ...) come from the guide;
+# only additions are listed here. Group/CF IDs: https://github.com/TRaSH-Guides/Guides/tree/master/docs/json
+sonarr:
+  sonarr:
+    base_url: http://sonarr.media.svc.cluster.local:8989
+    api_key: !env_var SONARR_API_KEY
+    delete_old_custom_formats: true
+    quality_definition:
+      type: series
+    quality_profiles:
+      - trash_id: c4cadd6b35b95f62c3d47a408e53e2f7 # WEB-2160p (Combined)
+        reset_unmatched_scores:
+          enabled: true
+    custom_format_groups:
+      add:
+        - trash_id: e0b2774083df4265f25c9e5bc6c80940 # [HDR Formats] DV Boost
+        - trash_id: f60f4401ce880aad62e9d21c8bb6b91a # [Streaming Services] Dutch
+        - trash_id: ddab3095a5d2f436f369263840af34f9 # [Streaming Services] UK
+
+radarr:
+  radarr:
+    base_url: http://radarr.media.svc.cluster.local
+    api_key: !env_var RADARR_API_KEY
+    delete_old_custom_formats: true
+    quality_definition:
+      type: movie
+    quality_profiles:
+      - trash_id: 05fbf054ac8ad0303335026cc2632f1a # WEBDL 2160p (Combined), language: Original
+        reset_unmatched_scores:
+          enabled: true
+    custom_format_groups:
+      add:
+        - trash_id: 1616617ab3a14397a2b2321bcbda44d1 # [HDR Formats] DV Boost
+        - trash_id: 088a792e0561c927fb396664b0db5c8f # [Streaming Services] Dutch
+        - trash_id: f737e18b5824d6ebb2d57b957ae2fd6c # [Streaming Services] UK

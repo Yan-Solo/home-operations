@@ -76,6 +76,7 @@ Create these secrets in that project. The **name** must match exactly.
 | `omniroute-initial-password` | password for OmniRoute's own dashboard login |
 | `open-webui-secret-key` | `openssl rand -base64 32` |
 | `open-webui-omniroute-api-key` | after OmniRoute is up: a gateway key from its dashboard; use `placeholder` for now |
+| `sonarr-api-key` / `radarr-api-key` | after Sonarr/Radarr are up: their API key (Settings → General), read by Recyclarr; use `placeholder` for now |
 | `frigate-tapo-username` / `frigate-tapo-password` | the Tapo C200's *Camera Account* (Tapo app → camera → Settings → Advanced settings → Camera Account) |
 | `gateway-oidc-client-id` / `gateway-oidc-client-secret` | after Pocket ID is up (see below); use `placeholder` for now |
 | `grafana-oidc-client-id` / `grafana-oidc-client-secret` | same |
