@@ -33,6 +33,16 @@ spec:
               DATA_DIR: /app/data
               PUID: "568"
               PGID: "568"
+              # Pocket ID login
+              OIDC_AUTH_ENABLED: "true"
+              OIDC_SIGNUP_ENABLED: "true"
+              OIDC_PROVIDER_NAME: Pocket ID
+              OIDC_CONFIGURATION_URL: https://id.sunnyvale.be/.well-known/openid-configuration
+              OIDC_AUTO_REDIRECT: "true"
+              OIDC_REMEMBER_ME: "true"
+            envFrom:
+              - secretRef:
+                  name: mealie-secret
             probes:
               liveness: &probe
                 enabled: true
