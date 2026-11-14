@@ -20,6 +20,7 @@ spec:
         - https://audiobookshelf.sunnyvale.be/healthcheck
         - https://home-assistant.sunnyvale.be
         - https://mealie.sunnyvale.be
+        - https://memos.sunnyvale.be/healthz
         - https://plik.sunnyvale.be/health
         - https://grafana.sunnyvale.be/api/health
 ---

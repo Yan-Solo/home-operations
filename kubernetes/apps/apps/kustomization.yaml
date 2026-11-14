@@ -5,4 +5,5 @@ resources:
   - ./namespace.yaml
   - ./blinko/ks.yaml
   - ./mealie/ks.yaml
+  - ./memos/ks.yaml
   - ./plik/ks.yaml

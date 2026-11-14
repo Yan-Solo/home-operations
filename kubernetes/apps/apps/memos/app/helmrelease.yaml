@@ -1,0 +1,73 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: memos
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: memos
+  interval: 1h
+  values:
+    defaultPodOptions:
+      enableServiceLinks: false
+    controllers:
+      memos:
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: docker.io/neosmemo/memos
+              tag: 26.11.0
+            env:
+              TZ: Europe/Brussels
+              # Needed for SSO callbacks and share links
+              MEMOS_INSTANCE_URL: https://memos.sunnyvale.be
+            probes:
+              liveness: &probe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    # Reports ready only while the SQLite database answers
+                    path: /healthz
+                    port: &port 5230
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  failureThreshold: 5
+              readiness: *probe
+            resources:
+              requests:
+                cpu: 10m
+                memory: 64Mi
+              limits:
+                memory: 512Mi
+    service:
+      memos:
+        controller: memos
+        ports:
+          http:
+            port: *port
+    # No Pocket ID policy at the gateway: the mobile apps and the MCP endpoint (/mcp) use
+    # access tokens against the API directly.
+    # The first account to register becomes the admin; turn off sign-up afterwards in
+    # Settings > System. Pocket ID login is added in Settings > SSO as an OAuth2 provider
+    # (endpoints from https://id.sunnyvale.be/.well-known/openid-configuration), with the
+    # callback URL https://memos.sunnyvale.be/auth/callback.
+    route:
+      memos:
+        hostnames: ["memos.sunnyvale.be"]
+        parentRefs:
+          - name: envoy-gateway
+            namespace: default
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: memos
+                port: *port
+    persistence:
+      # SQLite database and attachments
+      data:
+        existingClaim: memos
+        globalMounts:
+          - path: /var/opt/memos
