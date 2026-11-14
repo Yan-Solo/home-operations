@@ -35,7 +35,7 @@ spec:
               PGID: "568"
               # Pocket ID login
               OIDC_AUTH_ENABLED: "true"
-              OIDC_SIGNUP_ENABLED: "true"
+              OIDC_SIGNUP_ENABLED: "false"
               OIDC_PROVIDER_NAME: Pocket ID
               OIDC_CONFIGURATION_URL: https://id.sunnyvale.be/.well-known/openid-configuration
               OIDC_AUTO_REDIRECT: "true"
