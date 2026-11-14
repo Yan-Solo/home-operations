@@ -16,7 +16,7 @@ spec:
           app:
             image:
               repository: ghcr.io/calibrain/shelfmark
-              tag: v1.6.2
+              tag: v1.7.0
             env:
               # The entrypoint (root) chowns /books, the whole media volume, to this user.
               # Its default is 1000, which locks the other media apps (568) out.
