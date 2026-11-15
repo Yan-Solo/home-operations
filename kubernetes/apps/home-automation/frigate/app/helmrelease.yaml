@@ -77,6 +77,15 @@ spec:
           webrtc-udp:
             port: 8555
             protocol: UDP
+    # Detector inference speed, camera/process FPS, skipped frames, CPU and GPU per process
+    serviceMonitor:
+      frigate:
+        service:
+          identifier: frigate
+        endpoints:
+          - port: http
+            path: /api/metrics
+            interval: 1m
     route:
       frigate:
         hostnames: ["frigate.sunnyvale.be"]

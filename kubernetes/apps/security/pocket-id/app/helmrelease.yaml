@@ -28,6 +28,13 @@ spec:
               APP_URL: https://id.sunnyvale.be
               TRUST_PROXY: "true"
               ANALYTICS_DISABLED: "true"
+              # Metrics on a second port for the ServiceMonitor below (it binds to localhost
+              # unless told otherwise), traces through Alloy to Tempo
+              OTEL_METRICS_EXPORTER: prometheus
+              OTEL_EXPORTER_PROMETHEUS_HOST: 0.0.0.0
+              OTEL_EXPORTER_PROMETHEUS_PORT: &metrics 9464
+              OTEL_TRACES_EXPORTER: otlp
+              OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy.observability.svc.cluster.local:4318
             envFrom:
               - secretRef:
                   name: pocket-id-secret
@@ -57,6 +64,15 @@ spec:
         ports:
           http:
             port: *port
+          metrics:
+            port: *metrics
+    serviceMonitor:
+      pocket-id:
+        service:
+          identifier: pocket-id
+        endpoints:
+          - port: metrics
+            interval: 1m
     route:
       pocket-id:
         hostnames: ["id.sunnyvale.be"]

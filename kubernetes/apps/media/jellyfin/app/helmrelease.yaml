@@ -74,6 +74,16 @@ spec:
             targetPort: *port
           http-native:
             port: *port
+    # Active sessions and streams. Needs <EnableMetrics>true</EnableMetrics> in
+    # /config/config/system.xml (there is no setting for it in the UI), then a restart.
+    serviceMonitor:
+      jellyfin:
+        service:
+          identifier: jellyfin
+        endpoints:
+          - port: http-native
+            path: /metrics
+            interval: 1m
     route:
       jellyfin:
         hostnames: ["jellyfin.sunnyvale.be"]

@@ -1,0 +1,35 @@
+---
+# Every entity's state as a metric (temperatures, energy, batteries, Zigbee link quality, ...).
+# Needs `prometheus:` in /config/configuration.yaml and a long-lived access token
+# (profile > Security) stored in Bitwarden as home-assistant-prometheus-token.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: home-assistant-prometheus
+spec:
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: bitwarden
+  target:
+    name: home-assistant-prometheus-secret
+  data:
+    - secretKey: token
+      remoteRef:
+        key: home-assistant-prometheus-token
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: home-assistant
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/service: home-assistant
+  endpoints:
+    - port: http
+      path: /api/prometheus
+      interval: 1m
+      authorization:
+        credentials:
+          name: home-assistant-prometheus-secret
+          key: token
