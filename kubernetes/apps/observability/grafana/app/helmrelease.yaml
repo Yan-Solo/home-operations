@@ -101,6 +101,22 @@ spec:
         k8s-views-pods:
           url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-pods.json
           datasource: Mimir
+        k8s-system-api-server:
+          url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-system-api-server.json
+          datasource: Mimir
+        k8s-system-coredns:
+          url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-system-coredns.json
+          datasource: Mimir
+        # Envoy Gateway's own dashboards, pinned to the deployed version
+        envoy-proxy-global:
+          url: https://raw.githubusercontent.com/envoyproxy/gateway/v1.10.0/charts/gateway-addons-helm/dashboards/envoy-proxy-global.json
+          datasource: Mimir
+        envoy-gateway-global:
+          url: https://raw.githubusercontent.com/envoyproxy/gateway/v1.10.0/charts/gateway-addons-helm/dashboards/envoy-gateway-global.json
+          datasource: Mimir
+        envoy-clusters:
+          url: https://raw.githubusercontent.com/envoyproxy/gateway/v1.10.0/charts/gateway-addons-helm/dashboards/envoy-clusters.json
+          datasource: Mimir
         flux-performance:
           url: https://raw.githubusercontent.com/controlplaneio-fluxcd/flux-operator/main/config/monitoring/dashboards/flux-performance.json
           datasource: Mimir
@@ -118,6 +134,24 @@ spec:
           datasource:
             - name: DS_SIGNCL-PROMETHEUS
               value: Mimir
+        cert-manager:
+          gnetId: 20842
+          revision: 3
+          datasource: Mimir
+        # Frigate's built-in /api/metrics
+        frigate:
+          gnetId: 24165
+          revision: 1
+          datasource:
+            - name: DS_PROMETHEUS
+              value: mimir
+        # martabal/qbittorrent-exporter (media/exporters)
+        qbittorrent:
+          gnetId: 23784
+          revision: 1
+          datasource:
+            - name: DS_PROMETHEUS
+              value: mimir
     # Charts that ship dashboards as ConfigMaps (Cilium, CNPG, ...) are picked up automatically
     sidecar:
       dashboards:
