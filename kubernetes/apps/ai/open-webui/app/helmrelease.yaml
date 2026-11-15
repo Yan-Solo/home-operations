@@ -46,6 +46,12 @@ spec:
               # Who may sign in is decided by the allowed groups of the open-webui client in
               # Pocket ID, so new accounts can chat right away
               DEFAULT_USER_ROLE: user
+              # Traces (chat requests, model calls) and metrics over OTLP gRPC to Alloy
+              ENABLE_OTEL: "true"
+              ENABLE_OTEL_TRACES: "true"
+              ENABLE_OTEL_METRICS: "true"
+              OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy.observability.svc.cluster.local:4317
+              OTEL_EXPORTER_OTLP_INSECURE: "true"
             envFrom:
               - secretRef:
                   name: open-webui-secret

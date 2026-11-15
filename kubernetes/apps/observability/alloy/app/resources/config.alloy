@@ -191,7 +191,7 @@ loki.source.kubernetes_events "events" {
 }
 
 // ---------------------------------------------------------------------------
-// Traces (OTLP) -> Tempo
+// Traces (OTLP) -> Tempo, OTLP metrics (Open WebUI) -> Mimir
 // ---------------------------------------------------------------------------
 otelcol.receiver.otlp "default" {
   grpc {
@@ -201,14 +201,20 @@ otelcol.receiver.otlp "default" {
     endpoint = "0.0.0.0:4318"
   }
   output {
-    traces = [otelcol.processor.batch.default.input]
+    traces  = [otelcol.processor.batch.default.input]
+    metrics = [otelcol.processor.batch.default.input]
   }
 }
 
 otelcol.processor.batch "default" {
   output {
-    traces = [otelcol.exporter.otlp.tempo.input]
+    traces  = [otelcol.exporter.otlp.tempo.input]
+    metrics = [otelcol.exporter.prometheus.mimir.input]
   }
+}
+
+otelcol.exporter.prometheus "mimir" {
+  forward_to = [prometheus.remote_write.mimir.receiver]
 }
 
 otelcol.exporter.otlp "tempo" {

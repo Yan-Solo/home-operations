@@ -25,6 +25,14 @@ spec:
       metricsGenerator:
         enabled: true
         remoteWriteUrl: http://mimir.observability.svc.cluster.local:9009/api/v1/push
+      # The generator does nothing until processors are switched on: request rate / error /
+      # duration per service (span-metrics) and the service map in Grafana (service-graphs)
+      overrides:
+        defaults:
+          metrics_generator:
+            processors:
+              - service-graphs
+              - span-metrics
       receivers:
         otlp:
           protocols:
