@@ -62,3 +62,17 @@ spec:
       ensure: present
     - name: cube
       ensure: present
+---
+# Postgres metrics (connections, transactions, WAL archiving, replication). CNPG's own
+# spec.monitoring.enablePodMonitor is deprecated in favour of a PodMonitor like this one.
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: immich-postgresql
+spec:
+  selector:
+    matchLabels:
+      cnpg.io/cluster: immich-postgresql
+  podMetricsEndpoints:
+    - port: metrics
+      interval: 1m

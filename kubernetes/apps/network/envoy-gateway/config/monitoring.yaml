@@ -1,0 +1,31 @@
+---
+# Request rates, latency and response codes per route, from the Envoy proxy itself
+# (telemetry.metrics.prometheus in ./envoyproxy.yaml)
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: envoy-proxy
+  namespace: network
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: proxy
+      app.kubernetes.io/managed-by: envoy-gateway
+  podMetricsEndpoints:
+    - port: metrics
+      path: /stats/prometheus
+      interval: 1m
+---
+# The Envoy Gateway controller: xDS pushes, reconcile errors
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: envoy-gateway
+  namespace: network
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: gateway-helm
+  endpoints:
+    - port: metrics
+      interval: 1m
