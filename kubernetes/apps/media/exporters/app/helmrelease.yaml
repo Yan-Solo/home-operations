@@ -1,0 +1,169 @@
+---
+# Prometheus exporters for the media apps: queues, missing/wanted items, indexer health,
+# download speeds. Separate pods rather than sidecars, so a missing API key only breaks
+# the exporter and never the app itself.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: exporters
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: exporters
+  interval: 1h
+  values:
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 568
+        runAsGroup: 568
+    controllers:
+      sonarr-exporter: &exportarr
+        containers:
+          app: &exportarrContainer
+            image:
+              repository: ghcr.io/onedr0p/exportarr
+              tag: v2.3.0
+            args: ["sonarr"]
+            env:
+              PORT: &port 9707
+              URL: http://sonarr.media.svc.cluster.local:8989
+            # API_KEY, from ./externalsecret.yaml
+            envFrom:
+              - secretRef:
+                  name: sonarr-exporter-secret
+            securityContext: &securityContext
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop: ["ALL"]
+            resources: &resources
+              requests:
+                cpu: 5m
+                memory: 32Mi
+              limits:
+                memory: 128Mi
+      radarr-exporter:
+        <<: *exportarr
+        containers:
+          app:
+            <<: *exportarrContainer
+            args: ["radarr"]
+            env:
+              PORT: *port
+              URL: http://radarr.media.svc.cluster.local
+            envFrom:
+              - secretRef:
+                  name: radarr-exporter-secret
+      prowlarr-exporter:
+        <<: *exportarr
+        containers:
+          app:
+            <<: *exportarrContainer
+            args: ["prowlarr"]
+            env:
+              PORT: *port
+              URL: http://prowlarr.media.svc.cluster.local:9696
+            envFrom:
+              - secretRef:
+                  name: prowlarr-exporter-secret
+      bazarr-exporter:
+        <<: *exportarr
+        containers:
+          app:
+            <<: *exportarrContainer
+            args: ["bazarr"]
+            env:
+              PORT: *port
+              URL: http://bazarr.media.svc.cluster.local
+            envFrom:
+              - secretRef:
+                  name: bazarr-exporter-secret
+      sabnzbd-exporter:
+        <<: *exportarr
+        containers:
+          app:
+            <<: *exportarrContainer
+            args: ["sabnzbd"]
+            env:
+              PORT: *port
+              URL: http://sabnzbd.media.svc.cluster.local
+            envFrom:
+              - secretRef:
+                  name: sabnzbd-exporter-secret
+      qbittorrent-exporter:
+        containers:
+          app:
+            image:
+              repository: ghcr.io/martabal/qbittorrent-exporter
+              tag: v2.0.4
+            env:
+              EXPORTER_PORT: &qbtPort 8090
+              QBITTORRENT_BASE_URL: http://qbittorrent.media.svc.cluster.local
+            # QBITTORRENT_API_KEY (required since qBittorrent 5.2), from ./externalsecret.yaml
+            envFrom:
+              - secretRef:
+                  name: qbittorrent-exporter-secret
+            probes:
+              liveness: &qbtProbe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /healthz
+                    port: *qbtPort
+              readiness: *qbtProbe
+            securityContext: *securityContext
+            resources: *resources
+    service:
+      sonarr-exporter: &service
+        controller: sonarr-exporter
+        ports:
+          metrics:
+            port: *port
+      radarr-exporter:
+        <<: *service
+        controller: radarr-exporter
+      prowlarr-exporter:
+        <<: *service
+        controller: prowlarr-exporter
+      bazarr-exporter:
+        <<: *service
+        controller: bazarr-exporter
+      sabnzbd-exporter:
+        <<: *service
+        controller: sabnzbd-exporter
+      qbittorrent-exporter:
+        controller: qbittorrent-exporter
+        ports:
+          metrics:
+            port: *qbtPort
+    serviceMonitor:
+      sonarr-exporter: &serviceMonitor
+        service:
+          identifier: sonarr-exporter
+        endpoints: &endpoints
+          - port: metrics
+            interval: 1m
+            # The *arr API is slow on big libraries
+            scrapeTimeout: 30s
+      radarr-exporter:
+        <<: *serviceMonitor
+        service:
+          identifier: radarr-exporter
+      prowlarr-exporter:
+        <<: *serviceMonitor
+        service:
+          identifier: prowlarr-exporter
+      bazarr-exporter:
+        <<: *serviceMonitor
+        service:
+          identifier: bazarr-exporter
+      sabnzbd-exporter:
+        <<: *serviceMonitor
+        service:
+          identifier: sabnzbd-exporter
+      qbittorrent-exporter:
+        service:
+          identifier: qbittorrent-exporter
+        endpoints: *endpoints

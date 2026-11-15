@@ -6,6 +6,7 @@ resources:
   - ./storage/ks.yaml
   - ./audiobookshelf/ks.yaml
   - ./bazarr/ks.yaml
+  - ./exporters/ks.yaml
   - ./flaresolverr/ks.yaml
   - ./immich/ks.yaml
   - ./jellyfin/ks.yaml
