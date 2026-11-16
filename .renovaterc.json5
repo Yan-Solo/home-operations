@@ -67,6 +67,11 @@
       groupName: "flux-operator",
     },
     {
+      description: "Prowlarr 3.x is still pre-release (the image tags don't say so). Remove once v3 is marked stable on GitHub",
+      matchPackageNames: ["ghcr.io/home-operations/prowlarr"],
+      allowedVersions: "<3",
+    },
+    {
       description: "Immich: server and machine-learning move together",
       matchPackageNames: ["/immich/"],
       groupName: "immich",
