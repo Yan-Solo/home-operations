@@ -33,6 +33,8 @@
     {
       description: "Apps also automerge minor updates; infrastructure minors (Cilium, Envoy Gateway, CNPG, ...) wait for review",
       matchFileNames: [
+        "kubernetes/apps/ai/**",
+        "kubernetes/apps/observability",
         "kubernetes/apps/media/**",
         "kubernetes/apps/home-automation/**",
         "kubernetes/apps/apps/**",
