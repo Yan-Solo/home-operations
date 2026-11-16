@@ -31,7 +31,7 @@
       ignoreTests: false,
     },
     {
-      description: "Apps also automerge minor updates; infrastructure minors (Cilium, Envoy Gateway, CNPG, ...) wait for review",
+      description: "Apps and the monitoring stack also automerge minor updates; infrastructure minors (Cilium, Envoy Gateway, CNPG, ...) wait for review",
       matchFileNames: [
         "kubernetes/apps/ai/**",
         "kubernetes/apps/observability",
@@ -39,6 +39,7 @@
         "kubernetes/apps/home-automation/**",
         "kubernetes/apps/apps/**",
         "kubernetes/apps/security/**",
+        "kubernetes/apps/observability/**",
       ],
       matchUpdateTypes: ["minor"],
       matchCurrentVersion: "!/^0/",
