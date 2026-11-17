@@ -26,7 +26,7 @@ spec:
           app:
             image:
               repository: ghcr.io/home-operations/home-assistant
-              tag: 2026.11.1
+              tag: 2026.11.2
             # Envoy's pod network (10.42.0.0/16) must be a trusted proxy. Home Assistant keeps
             # that in /config/.storage/http now and ignores `http:` in configuration.yaml.
             securityContext:
