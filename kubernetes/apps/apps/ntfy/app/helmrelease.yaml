@@ -1,0 +1,107 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: ntfy
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: ntfy
+  interval: 1h
+  values:
+    defaultPodOptions:
+      enableServiceLinks: false
+      securityContext:
+        # The image doesn't set a user; it only needs a non-privileged port
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+    controllers:
+      ntfy:
+        # SQLite state, never run more than one replica
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: docker.io/binwiederhier/ntfy
+              tag: v2.38.1
+            args: ["serve"]
+            env:
+              TZ: Europe/Brussels
+              NTFY_BASE_URL: https://ntfy.sunnyvale.be
+              NTFY_LISTEN_HTTP: ":8080"
+              # Own port, so /metrics isn't reachable through the gateway
+              NTFY_METRICS_LISTEN_HTTP: ":9090"
+              NTFY_BEHIND_PROXY: "true"
+              NTFY_CACHE_FILE: /var/lib/ntfy/cache.db
+              NTFY_AUTH_FILE: /var/lib/ntfy/auth.db
+              NTFY_ATTACHMENT_CACHE_DIR: /var/lib/ntfy/attachments
+              # Nothing is readable or writable without a login or token
+              NTFY_AUTH_DEFAULT_ACCESS: deny-all
+              NTFY_ENABLE_LOGIN: "true"
+              NTFY_REQUIRE_LOGIN: "true"
+              NTFY_ENABLE_SIGNUP: "false"
+              # iOS only gets instant pushes through ntfy.sh's relay, which only sees a message ID
+              # and a hash of the topic URL, never the content
+              NTFY_UPSTREAM_BASE_URL: https://ntfy.sh
+              NTFY_LOG_FORMAT: json
+            envFrom:
+              - secretRef:
+                  name: ntfy-secret
+            probes:
+              liveness: &probe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /v1/health
+                    port: &port 8080
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  failureThreshold: 5
+              readiness: *probe
+            resources:
+              requests:
+                cpu: 10m
+                memory: 32Mi
+              limits:
+                memory: 256Mi
+    service:
+      ntfy:
+        controller: ntfy
+        ports:
+          http:
+            port: *port
+          metrics:
+            port: 9090
+    serviceMonitor:
+      ntfy:
+        service:
+          identifier: ntfy
+        endpoints:
+          - port: metrics
+            path: /metrics
+            interval: 1m
+    # No Pocket ID policy at the gateway: the phone app and the other apps authenticate
+    # with ntfy's own users and tokens (see externalsecret.yaml).
+    # Subscriptions are long-lived streams; ntfy's 45s keepalive stays under Envoy's
+    # stream idle timeout, so no BackendTrafficPolicy is needed.
+    route:
+      ntfy:
+        hostnames: ["ntfy.sunnyvale.be"]
+        parentRefs:
+          - name: envoy-gateway
+            namespace: default
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: ntfy
+                port: *port
+    persistence:
+      # Message cache (12h), users and tokens, attachments
+      data:
+        existingClaim: ntfy
+        globalMounts:
+          - path: /var/lib/ntfy

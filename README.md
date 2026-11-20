@@ -76,6 +76,9 @@ Create these secrets in that project. The **name** must match exactly.
 | `omniroute-initial-password` | password for OmniRoute's own dashboard login |
 | `open-webui-secret-key` | `openssl rand -base64 32` |
 | `n8n-encryption-key` | `openssl rand -base64 32` (**also save it in your password vault**: without it the credentials n8n stored are unreadable) |
+| `ntfy-admin-password-hash` | bcrypt hash of the password you log in to ntfy with (user `admin`): `podman run --rm -it docker.io/binwiederhier/ntfy user hash` |
+| `ntfy-publisher-password-hash` | bcrypt hash of any random password (the `publisher` user only uses its token), same command |
+| `ntfy-publisher-token` | `podman run --rm docker.io/binwiederhier/ntfy token generate`; apps publish to ntfy with it |
 | `open-webui-omniroute-api-key` | after OmniRoute is up: a gateway key from its dashboard; use `placeholder` for now |
 | `sonarr-api-key` / `radarr-api-key` | after Sonarr/Radarr are up: their API key (Settings → General), read by Recyclarr; use `placeholder` for now |
 | `frigate-tapo-username` / `frigate-tapo-password` | the Tapo C200's *Camera Account* (Tapo app → camera → Settings → Advanced settings → Camera Account) |

@@ -7,4 +7,5 @@ resources:
   - ./mealie/ks.yaml
   - ./memos/ks.yaml
   - ./n8n/ks.yaml
+  - ./ntfy/ks.yaml
   - ./plik/ks.yaml
