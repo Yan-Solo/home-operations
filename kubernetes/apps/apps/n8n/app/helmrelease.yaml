@@ -1,0 +1,164 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: n8n
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: n8n
+  interval: 1h
+  values:
+    defaultPodOptions:
+      enableServiceLinks: false
+      securityContext:
+        # Image runs as the node user
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+    controllers:
+      n8n:
+        # Single main instance (no queue mode): never run two against the same database
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: docker.io/n8nio/n8n
+              tag: 2.48.7
+            env:
+              TZ: &tz Europe/Brussels
+              GENERIC_TIMEZONE: *tz
+              N8N_PORT: "5678"
+              N8N_HOST: &host n8n.sunnyvale.be
+              N8N_PROTOCOL: https
+              # Shown in webhook nodes and sent to OAuth providers as the callback base
+              N8N_EDITOR_BASE_URL: https://n8n.sunnyvale.be/
+              WEBHOOK_URL: https://n8n.sunnyvale.be/
+              # Trust X-Forwarded-* from Envoy (client IPs, https)
+              N8N_PROXY_HOPS: "1"
+              N8N_METRICS: "true"
+              N8N_DIAGNOSTICS_ENABLED: "false"
+              N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
+              N8N_PERSONALIZATION_ENABLED: "false"
+              # Keep 14 days of execution history in Postgres
+              EXECUTIONS_DATA_PRUNE: "true"
+              EXECUTIONS_DATA_MAX_AGE: "336"
+              DB_TYPE: postgresdb
+              DB_POSTGRESDB_HOST:
+                valueFrom:
+                  secretKeyRef:
+                    name: n8n-postgresql-app
+                    key: host
+              DB_POSTGRESDB_DATABASE:
+                valueFrom:
+                  secretKeyRef:
+                    name: n8n-postgresql-app
+                    key: dbname
+              DB_POSTGRESDB_USER:
+                valueFrom:
+                  secretKeyRef:
+                    name: n8n-postgresql-app
+                    key: user
+              DB_POSTGRESDB_PASSWORD:
+                valueFrom:
+                  secretKeyRef:
+                    name: n8n-postgresql-app
+                    key: password
+            envFrom:
+              - secretRef:
+                  name: n8n-secret
+            probes:
+              # First start runs the database migrations
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /healthz
+                    port: &port 5678
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  failureThreshold: 30
+              liveness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /healthz
+                    port: *port
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  failureThreshold: 5
+              # Also checks the database connection
+              readiness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /healthz/readiness
+                    port: *port
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  failureThreshold: 5
+            resources:
+              requests:
+                cpu: 10m
+                memory: 256Mi
+              limits:
+                memory: 2Gi
+    service:
+      n8n:
+        controller: n8n
+        ports:
+          http:
+            port: *port
+    serviceMonitor:
+      n8n:
+        service:
+          identifier: n8n
+        endpoints:
+          - port: http
+            path: /metrics
+            interval: 1m
+    route:
+      # Editor and API: Pocket ID at the gateway (components/oidc), then n8n's own login.
+      # The first visit creates the owner account, so do that right after the first deploy.
+      n8n:
+        hostnames: [*host]
+        parentRefs:
+          - name: envoy-gateway
+            namespace: default
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: n8n
+                port: *port
+      # Webhook, form and MCP triggers must be reachable by outside callers without a
+      # Pocket ID session. The longer path prefixes win over the editor route's `/`.
+      webhooks:
+        hostnames: [*host]
+        parentRefs:
+          - name: envoy-gateway
+            namespace: default
+            sectionName: https
+        rules:
+          - matches:
+              - path: {type: PathPrefix, value: /webhook/}
+              - path: {type: PathPrefix, value: /webhook-test/}
+              - path: {type: PathPrefix, value: /webhook-waiting/}
+              - path: {type: PathPrefix, value: /form/}
+              - path: {type: PathPrefix, value: /form-test/}
+              - path: {type: PathPrefix, value: /form-waiting/}
+              - path: {type: PathPrefix, value: /mcp/}
+              - path: {type: PathPrefix, value: /mcp-test/}
+            backendRefs:
+              - identifier: n8n
+                port: *port
+    persistence:
+      # ~/.n8n: binary data of executions, installed community nodes, instance settings
+      data:
+        existingClaim: n8n
+        globalMounts:
+          - path: /home/node/.n8n

@@ -75,6 +75,7 @@ Create these secrets in that project. The **name** must match exactly.
 | `omniroute-jwt-secret` | `openssl rand -base64 48` |
 | `omniroute-initial-password` | password for OmniRoute's own dashboard login |
 | `open-webui-secret-key` | `openssl rand -base64 32` |
+| `n8n-encryption-key` | `openssl rand -base64 32` (**also save it in your password vault**: without it the credentials n8n stored are unreadable) |
 | `open-webui-omniroute-api-key` | after OmniRoute is up: a gateway key from its dashboard; use `placeholder` for now |
 | `sonarr-api-key` / `radarr-api-key` | after Sonarr/Radarr are up: their API key (Settings → General), read by Recyclarr; use `placeholder` for now |
 | `frigate-tapo-username` / `frigate-tapo-password` | the Tapo C200's *Camera Account* (Tapo app → camera → Settings → Advanced settings → Camera Account) |
@@ -155,7 +156,7 @@ flux get ks -A --watch
    | `gameplane` | `https://gameplane.sunnyvale.be/auth/oidc/helm/callback` | `gameplane-oidc-client-*` |
    | `immich` | `https://immich.sunnyvale.be/auth/login`, `https://immich.sunnyvale.be/user-settings`, `app.immich:///oauth-callback` | `immich-oidc-client-*` |
    | `open-webui` | `https://chat.sunnyvale.be/oauth/oidc/callback` | `open-webui-oidc-client-*` |
-   | `gateway` | `https://{sonarr,radarr,prowlarr,bazarr,sabnzbd,qbit,shelfmark,zigbee2mqtt,frigate,hubble,home-assistant,omniroute}.sunnyvale.be/oauth2/callback` (one line each) | `gateway-oidc-client-*` |
+   | `gateway` | `https://{sonarr,radarr,prowlarr,bazarr,sabnzbd,qbit,shelfmark,zigbee2mqtt,frigate,hubble,home-assistant,omniroute,n8n}.sunnyvale.be/oauth2/callback` (one line each) | `gateway-oidc-client-*` |
 
    Restrict each client to the `admins` group, paste the IDs and secrets into Bitwarden, and run `task reconcile`. External Secrets picks up the new values within an hour; `kubectl annotate es -A --all force-sync=$(date +%s) --overwrite` makes it immediate.
 

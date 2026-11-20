@@ -6,4 +6,5 @@ resources:
   - ./blinko/ks.yaml
   - ./mealie/ks.yaml
   - ./memos/ks.yaml
+  - ./n8n/ks.yaml
   - ./plik/ks.yaml
