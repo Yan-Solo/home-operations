@@ -145,13 +145,6 @@ spec:
           datasource:
             - name: DS_PROMETHEUS
               value: mimir
-        # martabal/qbittorrent-exporter (media/exporters)
-        qbittorrent:
-          gnetId: 23784
-          revision: 1
-          datasource:
-            - name: DS_PROMETHEUS
-              value: mimir
     # Charts that ship dashboards as ConfigMaps (Cilium, CNPG, ...) are picked up automatically
     sidecar:
       dashboards:
