@@ -174,9 +174,11 @@ spec:
           - name: envoy-gateway
             namespace: default
             sectionName: https
+    # The PVC comes from the volsync component (../ks.yaml), which also backs it up nightly.
+    # It used to be created by this chart: the live PVC carries helm.sh/resource-policy=keep
+    # so Helm left it in place when it stopped managing it.
     persistence:
       enabled: true
-      size: 2Gi
-      storageClassName: local-ssd
+      existingClaim: grafana
     testFramework:
       enabled: false

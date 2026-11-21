@@ -5,7 +5,10 @@ metadata:
   name: grafana
   namespace: flux-system
 spec:
+  components:
+    - ../../../../components/volsync
   dependsOn:
+    - name: volsync
     - name: mimir
     - name: loki
     - name: tempo
@@ -14,6 +17,16 @@ spec:
     - name: openebs
   interval: 1h
   path: ./kubernetes/apps/observability/grafana/app
+  postBuild:
+    substitute:
+      APP: grafana
+      VOLSYNC_CAPACITY: 2Gi
+      # Grafana's uid/gid, so the backup can read its files
+      VOLSYNC_PUID: "472"
+      VOLSYNC_PGID: "472"
+    substituteFrom:
+      - kind: ConfigMap
+        name: cluster-settings
   prune: true
   sourceRef:
     kind: GitRepository
