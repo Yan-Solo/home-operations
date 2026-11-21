@@ -23,7 +23,7 @@ spec:
           app:
             image:
               repository: ghcr.io/advplyr/audiobookshelf
-              tag: 2.37.2
+              tag: 2.38.0
             env:
               PORT: &port 8080
               CONFIG_PATH: /config
