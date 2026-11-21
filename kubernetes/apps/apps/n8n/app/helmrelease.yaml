@@ -26,7 +26,7 @@ spec:
           app:
             image:
               repository: docker.io/n8nio/n8n
-              tag: 2.48.7
+              tag: 2.49.3
             env:
               TZ: &tz Europe/Brussels
               GENERIC_TIMEZONE: *tz
