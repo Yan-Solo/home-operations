@@ -1,0 +1,242 @@
+---
+# Grafana alerting, provisioned from files: contact points (ntfy), the notification policy and
+# the alert rules. Mounted into /etc/grafana/provisioning/alerting by ./helmrelease.yaml;
+# Reloader restarts Grafana when this changes. Provisioned items are read-only in the UI.
+#
+# Not the chart's `alerting:` values: the chart runs those through Helm's tpl, which would
+# eat Grafana's own {{ }} templates. And no "$" below except $NTFY_TOKEN: Grafana expands
+# $VARS from its environment in these files, so templates use .Labels instead of $labels.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-alerting
+  annotations:
+    # ../ks.yaml substitutes ${VARS} for the volsync component; leave $NTFY_TOKEN to Grafana
+    kustomize.toolkit.fluxcd.io/substitute: disabled
+data:
+  # ntfy formats Grafana's webhook itself (?template=grafana): 🚨 + title when firing,
+  # ✅ + title when resolved. Tapping the notification opens Grafana's alert list.
+  # Token: the write-only "publisher" user from apps/ntfy, NTFY_TOKEN in grafana-secret.
+  contact-points.yaml: |
+    apiVersion: 1
+    contactPoints:
+      - orgId: 1
+        name: ntfy-critical
+        receivers:
+          - uid: ntfy-critical
+            type: webhook
+            settings:
+              url: http://ntfy.apps.svc.cluster.local:8080/homelab-alerts?template=grafana&priority=high&click=https%3A%2F%2Fgrafana.sunnyvale.be%2Falerting%2Flist
+              httpMethod: POST
+              authorization_scheme: Bearer
+              authorization_credentials: $NTFY_TOKEN
+              title: '{{ template "ntfy.title" . }}'
+              message: '{{ template "ntfy.message" . }}'
+      - orgId: 1
+        name: ntfy-warning
+        receivers:
+          - uid: ntfy-warning
+            type: webhook
+            settings:
+              url: http://ntfy.apps.svc.cluster.local:8080/homelab-alerts?template=grafana&click=https%3A%2F%2Fgrafana.sunnyvale.be%2Falerting%2Flist
+              httpMethod: POST
+              authorization_scheme: Bearer
+              authorization_credentials: $NTFY_TOKEN
+              title: '{{ template "ntfy.title" . }}'
+              message: '{{ template "ntfy.message" . }}'
+
+  # Short notification text. Every rule sets two annotations for this:
+  #   summary  what's wrong, shown while firing
+  #   subject  what it's about, shown as "<subject> is OK again" once resolved
+  templates.yaml: |
+    apiVersion: 1
+    templates:
+      - orgId: 1
+        name: ntfy
+        template: |
+          {{ define "ntfy.title" }}{{ .CommonLabels.alertname }}{{ if gt (len .Alerts.Firing) 1 }} ({{ len .Alerts.Firing }}){{ end }}{{ end }}
+          {{ define "ntfy.message" }}{{ range .Alerts.Firing }}{{ .Annotations.summary }}
+          {{ end }}{{ range .Alerts.Resolved }}{{ .Annotations.subject }} is OK again
+          {{ end }}{{ end }}
+
+  # critical: sound + vibration, repeated every 4h. Everything else: quiet push, every 12h.
+  policies.yaml: |
+    apiVersion: 1
+    policies:
+      - orgId: 1
+        receiver: ntfy-warning
+        group_by: [grafana_folder, alertname]
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 12h
+        routes:
+          - receiver: ntfy-critical
+            object_matchers:
+              - [severity, "=", critical]
+            repeat_interval: 4h
+
+  # One alert per volume or database, so the notification names what broke.
+  # 93600s = 26h: a nightly backup that missed one run.
+  backups.yaml: |
+    apiVersion: 1
+    groups:
+      - orgId: 1
+        name: backups
+        folder: Backups
+        interval: 5m
+        rules:
+          - uid: backup-volume-failed
+            title: Volume backup failed
+            condition: B
+            for: 5m
+            noDataState: OK
+            execErrState: Error
+            labels:
+              severity: warning
+            annotations:
+              subject: '{{ .Labels.namespace }}/{{ .Labels.name }}'
+              summary: 'Last backup of {{ .Labels.namespace }}/{{ .Labels.name }} failed'
+              description: 'The most recent VolSync run failed. Check the volsync-src-{{ .Labels.name }} job logs in {{ .Labels.namespace }}.'
+              # Links the alert to the "Volumes" table on the Backups dashboard (./dashboards/backups.json)
+              __dashboardUid__: backups
+              __panelId__: '11'
+            data:
+              - refId: A
+                datasourceUid: mimir
+                relativeTimeRange: {from: 600, to: 0}
+                model:
+                  refId: A
+                  instant: true
+                  expr: 'max by (namespace, name) (volsync_replicationsource_latest_mover_result{result="Failed"}) == 1'
+              - &threshold
+                refId: B
+                datasourceUid: __expr__
+                relativeTimeRange: {from: 0, to: 0}
+                model:
+                  refId: B
+                  type: threshold
+                  expression: A
+                  conditions:
+                    - evaluator: {type: gt, params: [0]}
+
+          - uid: backup-volume-stale
+            title: Volume backup too old
+            condition: B
+            for: 15m
+            noDataState: OK
+            execErrState: Error
+            labels:
+              severity: critical
+            annotations:
+              subject: '{{ .Labels.namespace }}/{{ .Labels.name }}'
+              # .Values.A only exists while firing; Grafana also renders this when the rule is OK
+              summary: '{{ .Labels.namespace }}/{{ .Labels.name }} not backed up for {{ with .Values.A }}{{ humanizeDuration .Value }}{{ else }}over 26h{{ end }}'
+              description: 'No successful VolSync backup in over 26h.'
+              __dashboardUid__: backups
+              __panelId__: '11'
+            data:
+              - refId: A
+                datasourceUid: mimir
+                relativeTimeRange: {from: 600, to: 0}
+                model:
+                  refId: A
+                  instant: true
+                  expr: 'time() - max by (namespace, name) (volsync_replicationsource_last_sync_timestamp_seconds) > 93600'
+              - *threshold
+
+          - uid: backup-database-failed
+            title: Database backup failed
+            condition: B
+            for: 5m
+            noDataState: OK
+            execErrState: Error
+            labels:
+              severity: warning
+            annotations:
+              subject: '{{ .Labels.job }}'
+              summary: 'Last base backup of {{ .Labels.job }} failed'
+              description: 'The most recent barman-cloud backup failed: kubectl get backups.postgresql.cnpg.io -n {{ .Labels.namespace }}'
+              # "Databases" table
+              __dashboardUid__: backups
+              __panelId__: '15'
+            data:
+              - refId: A
+                datasourceUid: mimir
+                relativeTimeRange: {from: 600, to: 0}
+                model:
+                  refId: A
+                  instant: true
+                  expr: 'max by (namespace, job) (barman_cloud_cloudnative_pg_io_last_failed_backup_timestamp > barman_cloud_cloudnative_pg_io_last_available_backup_timestamp)'
+              - *threshold
+
+          - uid: backup-database-stale
+            title: Database backup too old
+            condition: B
+            for: 15m
+            noDataState: OK
+            execErrState: Error
+            labels:
+              severity: critical
+            annotations:
+              subject: '{{ .Labels.job }}'
+              summary: '{{ .Labels.job }} has no base backup for {{ with .Values.A }}{{ humanizeDuration .Value }}{{ else }}over 26h{{ end }}'
+              description: 'No successful barman-cloud base backup in over 26h.'
+              __dashboardUid__: backups
+              __panelId__: '15'
+            data:
+              - refId: A
+                datasourceUid: mimir
+                relativeTimeRange: {from: 600, to: 0}
+                model:
+                  refId: A
+                  instant: true
+                  expr: 'time() - max by (namespace, job) (barman_cloud_cloudnative_pg_io_last_available_backup_timestamp) > 93600'
+              - *threshold
+
+          - uid: backup-wal-archiving-failing
+            title: WAL archiving failing
+            condition: B
+            for: 10m
+            noDataState: OK
+            execErrState: Error
+            labels:
+              severity: critical
+            annotations:
+              subject: '{{ .Labels.job }}'
+              summary: '{{ .Labels.job }} cannot ship WAL to S3'
+              description: 'Point-in-time recovery is falling behind and WAL piles up on disk. Check the plugin-barman-cloud sidecar logs.'
+              __dashboardUid__: backups
+              __panelId__: '15'
+            data:
+              - refId: A
+                datasourceUid: mimir
+                relativeTimeRange: {from: 900, to: 0}
+                model:
+                  refId: A
+                  instant: true
+                  expr: 'max by (namespace, job) (increase(cnpg_pg_stat_archiver_failed_count[15m])) > 0'
+              - *threshold
+
+          - uid: backup-metrics-missing
+            title: Backup metrics missing
+            condition: B
+            for: 30m
+            noDataState: OK
+            execErrState: Error
+            labels:
+              severity: warning
+            annotations:
+              subject: 'Backup monitoring'
+              summary: 'Backup metrics are missing, so the other backup alerts cannot fire'
+              description: 'Check kube-state-metrics (VolSync) and the CNPG barman-cloud plugin metrics.'
+              __dashboardUid__: backups
+              __panelId__: '11'
+            data:
+              - refId: A
+                datasourceUid: mimir
+                relativeTimeRange: {from: 600, to: 0}
+                model:
+                  refId: A
+                  instant: true
+                  expr: 'absent(volsync_replicationsource_last_sync_timestamp_seconds) or absent(barman_cloud_cloudnative_pg_io_last_available_backup_timestamp)'
+              - *threshold

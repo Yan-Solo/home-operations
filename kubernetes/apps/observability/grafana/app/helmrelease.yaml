@@ -180,5 +180,11 @@ spec:
     persistence:
       enabled: true
       existingClaim: grafana
+    # Contact points, notification policy and alert rules (./alerting.yaml)
+    extraConfigmapMounts:
+      - name: grafana-alerting
+        configMap: grafana-alerting
+        mountPath: /etc/grafana/provisioning/alerting
+        readOnly: true
     testFramework:
       enabled: false

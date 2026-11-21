@@ -5,3 +5,21 @@ resources:
   - ./helmrepository.yaml
   - ./externalsecret.yaml
   - ./helmrelease.yaml
+  - ./alerting.yaml
+# Own dashboards, loaded by the dashboard sidecar into the "Homelab" folder. Read-only in the UI:
+# edit a copy, export it (Share > Export > "Export for sharing externally" off) and replace the file.
+configMapGenerator:
+  - name: grafana-dashboard-media
+    files: [media.json=./dashboards/media.json]
+    options: &dashboard
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: Homelab
+        # The JSON is full of ${datasource} and $__interval: not for Flux's substitution
+        kustomize.toolkit.fluxcd.io/substitute: disabled
+  - name: grafana-dashboard-backups
+    files: [backups.json=./dashboards/backups.json]
+    options: *dashboard
+generatorOptions:
+  disableNameSuffixHash: true
