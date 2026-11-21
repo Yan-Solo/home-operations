@@ -31,6 +31,9 @@ spec:
               PROWLARR__AUTH__METHOD: External
               PROWLARR__AUTH__REQUIRED: DisabledForLocalAddresses
               PROWLARR__LOG__LEVEL: info
+              # Hostnames callers use: browser via the gateway, Sonarr/Radarr (short name),
+              # exporters/probes (service FQDN). localhost is always allowed.
+              PROWLARR__SERVER__ALLOWEDHOSTS: prowlarr.sunnyvale.be,prowlarr,prowlarr.media.svc.cluster.local
               PROWLARR__SERVER__PORT: &port 9696
             probes:
               liveness: &probe
@@ -40,6 +43,10 @@ spec:
                   httpGet:
                     path: /ping
                     port: *port
+                    # kubelet sends the pod IP as Host, which Allowed Hosts rejects
+                    httpHeaders:
+                      - name: Host
+                        value: localhost
               readiness: *probe
             securityContext:
               allowPrivilegeEscalation: false
