@@ -14,8 +14,13 @@ metadata:
     # ../ks.yaml substitutes ${VARS} for the volsync component; leave $NTFY_TOKEN to Grafana
     kustomize.toolkit.fluxcd.io/substitute: disabled
 data:
-  # ntfy formats Grafana's webhook itself (?template=grafana): 🚨 + title when firing,
-  # ✅ + title when resolved. Tapping the notification opens Grafana's alert list.
+  # ntfy formats Grafana's webhook with an inline template (?template=yes), URL-encoded so
+  # neither Grafana nor Flux touches the {{ }}:
+  #   title    {{if eq .status "resolved"}}✅{{else}}🚨{{end}} {{.title}}   (⚠️ for warnings)
+  #   message  {{.message}}
+  # Priority sets how the phone alerts: critical = urgent (5, long vibration + sound, can
+  # break through Do Not Disturb), warning = low (2, silent, just shows up in the list).
+  # Tapping the notification opens Grafana's alert list.
   # Token: the write-only "publisher" user from apps/ntfy, NTFY_TOKEN in grafana-secret.
   contact-points.yaml: |
     apiVersion: 1
@@ -26,7 +31,7 @@ data:
           - uid: ntfy-critical
             type: webhook
             settings:
-              url: http://ntfy.apps.svc.cluster.local:8080/home-operations-alerts?template=grafana&priority=high&click=https%3A%2F%2Fgrafana.sunnyvale.be%2Falerting%2Flist
+              url: http://ntfy.apps.svc.cluster.local:8080/home-operations-alerts?priority=urgent&click=https%3A%2F%2Fgrafana.sunnyvale.be%2Falerting%2Flist&template=yes&title=%7B%7Bif%20eq%20.status%20%22resolved%22%7D%7D%E2%9C%85%7B%7Belse%7D%7D%F0%9F%9A%A8%7B%7Bend%7D%7D%20%7B%7B.title%7D%7D&message=%7B%7B.message%7D%7D
               httpMethod: POST
               authorization_scheme: Bearer
               authorization_credentials: $NTFY_TOKEN
@@ -38,7 +43,7 @@ data:
           - uid: ntfy-warning
             type: webhook
             settings:
-              url: http://ntfy.apps.svc.cluster.local:8080/home-operations-alerts?template=grafana&click=https%3A%2F%2Fgrafana.sunnyvale.be%2Falerting%2Flist
+              url: http://ntfy.apps.svc.cluster.local:8080/home-operations-alerts?priority=low&click=https%3A%2F%2Fgrafana.sunnyvale.be%2Falerting%2Flist&template=yes&title=%7B%7Bif%20eq%20.status%20%22resolved%22%7D%7D%E2%9C%85%7B%7Belse%7D%7D%E2%9A%A0%EF%B8%8F%7B%7Bend%7D%7D%20%7B%7B.title%7D%7D&message=%7B%7B.message%7D%7D
               httpMethod: POST
               authorization_scheme: Bearer
               authorization_credentials: $NTFY_TOKEN
