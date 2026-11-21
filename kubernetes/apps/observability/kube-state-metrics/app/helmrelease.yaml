@@ -18,3 +18,45 @@ spec:
       monitor:
         enabled: true
         honorLabels: true
+    # VolSync's own metrics have no "last successful backup" timestamp, so read it from the
+    # ReplicationSource status. Used by the Backups dashboard and its alerts.
+    rbac:
+      extraRules:
+        - apiGroups: ["volsync.backube"]
+          resources: ["replicationsources"]
+          verbs: ["list", "watch"]
+    customResourceState:
+      enabled: true
+      config:
+        kind: CustomResourceStateMetrics
+        spec:
+          resources:
+            - groupVersionKind:
+                group: volsync.backube
+                version: v1alpha1
+                kind: ReplicationSource
+              metricNamePrefix: volsync_replicationsource
+              labelsFromPath:
+                name: [metadata, name]
+                namespace: [metadata, namespace]
+              metrics:
+                - name: last_sync_timestamp_seconds
+                  help: When the last backup finished successfully
+                  each:
+                    type: Gauge
+                    gauge:
+                      path: [status, lastSyncTime]
+                - name: next_sync_timestamp_seconds
+                  help: When the next backup is scheduled
+                  each:
+                    type: Gauge
+                    gauge:
+                      path: [status, nextSyncTime]
+                - name: latest_mover_result
+                  help: Result of the most recent backup run
+                  each:
+                    type: StateSet
+                    stateSet:
+                      labelName: result
+                      path: [status, latestMoverStatus, result]
+                      list: [Successful, Failed]
