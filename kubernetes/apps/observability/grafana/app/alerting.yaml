@@ -82,7 +82,7 @@ data:
     groups:
       - orgId: 1
         name: backups
-        folder: Backups
+        folder: Home-operations
         interval: 5m
         rules:
           - uid: backup-volume-failed

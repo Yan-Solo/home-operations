@@ -2,27 +2,7 @@
   "apiVersion": "dashboard.grafana.app/v2",
   "kind": "Dashboard",
   "metadata": {
-    "name": "media-overview",
-    "namespace": "default",
-    "uid": "4fec6081-3284-497d-ba13-d14000085c65",
-    "resourceVersion": "1795297706643015",
-    "generation": 1,
-    "creationTimestamp": "2026-11-21T21:48:26Z",
-    "labels": {
-      "grafana.app/deprecatedInternalID": "3063238115500032"
-    },
-    "annotations": {
-      "grafana.app/createdBy": "access-policy:service",
-      "grafana.app/folder": "eg50atps4csn4f",
-      "grafana.app/managedBy": "classic-file-provisioning",
-      "grafana.app/managerId": "sidecarProvider",
-      "grafana.app/sourceChecksum": "8f6afc69b7c79181f5db274dd74c7c58",
-      "grafana.app/sourcePath": "/tmp/dashboards/Homelab/media.json",
-      "grafana.app/sourceTimestamp": "1795297706000",
-      "grafana.app/updatedBy": "access-policy:service",
-      "grafana.app/folderTitle": "Homelab",
-      "grafana.app/folderUrl": "/dashboards/f/eg50atps4csn4f/homelab"
-    }
+    "name": "media-overview"
   },
   "spec": {
     "annotations": [
