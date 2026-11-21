@@ -26,7 +26,7 @@ data:
           - uid: ntfy-critical
             type: webhook
             settings:
-              url: http://ntfy.apps.svc.cluster.local:8080/homelab-alerts?template=grafana&priority=high&click=https%3A%2F%2Fgrafana.sunnyvale.be%2Falerting%2Flist
+              url: http://ntfy.apps.svc.cluster.local:8080/home-operations-alerts?template=grafana&priority=high&click=https%3A%2F%2Fgrafana.sunnyvale.be%2Falerting%2Flist
               httpMethod: POST
               authorization_scheme: Bearer
               authorization_credentials: $NTFY_TOKEN
@@ -38,7 +38,7 @@ data:
           - uid: ntfy-warning
             type: webhook
             settings:
-              url: http://ntfy.apps.svc.cluster.local:8080/homelab-alerts?template=grafana&click=https%3A%2F%2Fgrafana.sunnyvale.be%2Falerting%2Flist
+              url: http://ntfy.apps.svc.cluster.local:8080/home-operations-alerts?template=grafana&click=https%3A%2F%2Fgrafana.sunnyvale.be%2Falerting%2Flist
               httpMethod: POST
               authorization_scheme: Bearer
               authorization_credentials: $NTFY_TOKEN
