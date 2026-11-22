@@ -14,5 +14,7 @@ spec:
     priorityClassName: system-cluster-critical
     monitoring:
       podMonitorEnabled: true
+      # Dashboard: a patched copy in observability/grafana/app/dashboards/cloudnative-pg.json.
+      # The chart's expects kube-prometheus recording rules and the in-tree barman metrics.
       grafanaDashboard:
-        create: true
+        create: false

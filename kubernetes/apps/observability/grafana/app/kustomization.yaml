@@ -24,6 +24,11 @@ configMapGenerator:
         kustomize.toolkit.fluxcd.io/substitute: disabled
 
   - name: grafana-dashboard-kubernetes
+    files:
+      # The CloudNativePG chart's dashboard, adapted to this cluster (Alloy + Mimir, barman-cloud
+      # plugin): CPU from raw cAdvisor instead of a kube-prometheus recording rule, memory without
+      # job="kubelet", backups from the plugin's barman_cloud_* metrics. Source: cloudnative-pg chart 0.29.1
+      - cloudnative-pg.json=./dashboards/cloudnative-pg.json
     literals:
       - k8s-views-global.json.url=https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-global.json
       - k8s-views-namespaces.json.url=https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-namespaces.json
@@ -34,6 +39,7 @@ configMapGenerator:
         grafana_dashboard: "1"
       annotations:
         grafana_folder: kubernetes
+        kustomize.toolkit.fluxcd.io/substitute: disabled
 
   - name: grafana-dashboard-kubernetes-networking
     files:

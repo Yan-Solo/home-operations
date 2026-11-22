@@ -14,8 +14,11 @@ cgroup:
 cluster:
   id: 1
   name: home-operations
+# The *.dashboards blocks land in Grafana's kubernetes/networking folder (grafana_folder annotation)
 dashboards:
   enabled: true
+  annotations:
+    grafana_folder: kubernetes/networking
 endpointRoutes:
   enabled: true
 envoy:
@@ -23,18 +26,23 @@ envoy:
 hubble:
   enabled: true
   metrics:
+    # labelsContext adds source/destination namespace labels, which the "by namespace" Hubble
+    # dashboards group and filter on. dns and httpV2 only see traffic that passes Cilium's L7
+    # proxy, so they stay empty without L7 (DNS/HTTP) policies.
     enabled:
-      - dns:query
-      - drop
-      - tcp
-      - flow
-      - port-distribution
-      - icmp
-      - http
+      - dns:query;labelsContext=source_namespace,destination_namespace
+      - drop:labelsContext=source_namespace,destination_namespace
+      - tcp:labelsContext=source_namespace,destination_namespace
+      - flow:labelsContext=source_namespace,destination_namespace
+      - port-distribution:labelsContext=source_namespace,destination_namespace
+      - icmp:labelsContext=source_namespace,destination_namespace
+      - httpV2:labelsContext=source_namespace,source_workload,destination_namespace,destination_workload,traffic_direction;sourceContext=workload-name|reserved-identity;destinationContext=workload-name|reserved-identity
     serviceMonitor:
       enabled: true
     dashboards:
       enabled: true
+      annotations:
+        grafana_folder: kubernetes/networking
   relay:
     enabled: true
     rollOutPods: true
@@ -66,6 +74,8 @@ operator:
       enabled: true
   dashboards:
     enabled: true
+    annotations:
+      grafana_folder: kubernetes/networking
 prometheus:
   enabled: true
   serviceMonitor:
