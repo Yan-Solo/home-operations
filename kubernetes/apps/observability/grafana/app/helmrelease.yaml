@@ -75,77 +75,6 @@ spec:
                 datasourceUid: mimir
               nodeGraph:
                 enabled: true
-    dashboardProviders:
-      dashboardproviders.yaml:
-        apiVersion: 1
-        providers:
-          - name: default
-            orgId: 1
-            folder: ""
-            type: file
-            disableDeletion: false
-            editable: true
-            options:
-              path: /var/lib/grafana/dashboards/default
-    dashboards:
-      default:
-        node-exporter-full:
-          url: https://raw.githubusercontent.com/rfmoz/grafana-dashboards/master/prometheus/node-exporter-full.json
-          datasource: Mimir
-        k8s-views-global:
-          url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-global.json
-          datasource: Mimir
-        k8s-views-namespaces:
-          url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-namespaces.json
-          datasource: Mimir
-        k8s-views-pods:
-          url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-pods.json
-          datasource: Mimir
-        k8s-system-api-server:
-          url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-system-api-server.json
-          datasource: Mimir
-        k8s-system-coredns:
-          url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-system-coredns.json
-          datasource: Mimir
-        # Envoy Gateway's own dashboards, pinned to the deployed version
-        envoy-proxy-global:
-          url: https://raw.githubusercontent.com/envoyproxy/gateway/v1.10.0/charts/gateway-addons-helm/dashboards/envoy-proxy-global.json
-          datasource: Mimir
-        envoy-gateway-global:
-          url: https://raw.githubusercontent.com/envoyproxy/gateway/v1.10.0/charts/gateway-addons-helm/dashboards/envoy-gateway-global.json
-          datasource: Mimir
-        envoy-clusters:
-          url: https://raw.githubusercontent.com/envoyproxy/gateway/v1.10.0/charts/gateway-addons-helm/dashboards/envoy-clusters.json
-          datasource: Mimir
-        flux-performance:
-          url: https://raw.githubusercontent.com/controlplaneio-fluxcd/flux-operator/main/config/monitoring/dashboards/flux-performance.json
-          datasource: Mimir
-        # grafana.com dashboards ask for a datasource input: 22604 refers to it by uid, the older
-        # 7587 by name
-        smartctl-exporter:
-          gnetId: 22604
-          revision: 4
-          datasource:
-            - name: DS_PROMETHEUS
-              value: mimir
-        blackbox-exporter:
-          gnetId: 7587
-          revision: 3
-          datasource:
-            - name: DS_SIGNCL-PROMETHEUS
-              value: Mimir
-        cert-manager:
-          gnetId: 20842
-          revision: 3
-          datasource: Mimir
-        # Frigate's built-in /api/metrics
-        frigate:
-          gnetId: 24165
-          revision: 1
-          datasource:
-            - name: DS_PROMETHEUS
-              value: mimir
-    # Charts that ship dashboards as ConfigMaps (Cilium, CNPG, ...) are picked up automatically
     sidecar:
       dashboards:
         enabled: true
@@ -167,9 +96,6 @@ spec:
           - name: envoy-gateway
             namespace: default
             sectionName: https
-    # The PVC comes from the volsync component (../ks.yaml), which also backs it up nightly.
-    # It used to be created by this chart: the live PVC carries helm.sh/resource-policy=keep
-    # so Helm left it in place when it stopped managing it.
     persistence:
       enabled: true
       existingClaim: grafana

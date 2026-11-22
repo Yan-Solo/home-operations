@@ -6,20 +6,65 @@ resources:
   - ./externalsecret.yaml
   - ./helmrelease.yaml
   - ./alerting.yaml
-# Own dashboards, loaded by the dashboard sidecar into the "Home-operations" folder. Read-only in the UI:
-# edit a copy, export it (Share > Export > "Export for sharing externally" off) and replace the file.
+# Dashboards are done in this kustomization for consistency between different sources of dashboards
 configMapGenerator:
   - name: grafana-dashboard-media
-    files: [media.json=./dashboards/media.json]
-    options: &dashboard
+    files:
+      - media.json=./dashboards/media.json
+      - backups.json=./dashboards/backups.json
+      - frigate.json=./dashboards/frigate.json
+    literals:
+      - flux-performance.json.url=https://raw.githubusercontent.com/controlplaneio-fluxcd/flux-operator/main/config/monitoring/dashboards/flux-performance.json
+    options:
       labels:
         grafana_dashboard: "1"
       annotations:
         grafana_folder: Home-operations
-        # The JSON is full of ${datasource} and $__interval: not for Flux's substitution
+        # Dashboard JSON is full of ${datasource} and $__interval: not for Flux's substitution
         kustomize.toolkit.fluxcd.io/substitute: disabled
-  - name: grafana-dashboard-backups
-    files: [backups.json=./dashboards/backups.json]
-    options: *dashboard
+
+  - name: grafana-dashboard-kubernetes
+    literals:
+      - k8s-views-global.json.url=https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-global.json
+      - k8s-views-namespaces.json.url=https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-namespaces.json
+      - k8s-views-pods.json.url=https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-pods.json
+      - k8s-system-api-server.json.url=https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-system-api-server.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: kubernetes
+
+  - name: grafana-dashboard-kubernetes-networking
+    files:
+      # Probes the gateway, the wildcard certificate and the apps behind it (apps/observability/blackbox-exporter)
+      - blackbox-exporter.json=./dashboards/blackbox-exporter.json
+    literals:
+      - k8s-system-coredns.json.url=https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-system-coredns.json
+      - cert-manager.json.url=https://grafana.com/api/dashboards/20842/revisions/3/download
+      - envoy-proxy-global.json.url=https://raw.githubusercontent.com/envoyproxy/gateway/v1.10.0/charts/gateway-addons-helm/dashboards/envoy-proxy-global.json
+      - envoy-gateway-global.json.url=https://raw.githubusercontent.com/envoyproxy/gateway/v1.10.0/charts/gateway-addons-helm/dashboards/envoy-gateway-global.json
+      - envoy-clusters.json.url=https://raw.githubusercontent.com/envoyproxy/gateway/v1.10.0/charts/gateway-addons-helm/dashboards/envoy-clusters.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: kubernetes/networking
+        kustomize.toolkit.fluxcd.io/substitute: disabled
+
+  - name: grafana-dashboard-hardware
+    literals:
+      - node-exporter-full.json.url=https://raw.githubusercontent.com/rfmoz/grafana-dashboards/master/prometheus/node-exporter-full.json
+    files:
+      - smartctl-exporter.json=./dashboards/smartctl-exporter.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: hardware
+        kustomize.toolkit.fluxcd.io/substitute: disabled
+# Fixed names, no hash suffix. The sidecar names files after the ConfigMap keys, and when a
+# ConfigMap is deleted it removes those files. With a hash, every change would create a new
+# ConfigMap and then prune the old one, deleting the dashboards the new one had just written.
 generatorOptions:
   disableNameSuffixHash: true
