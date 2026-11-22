@@ -18,7 +18,7 @@ spec:
           app:
             image:
               repository: docker.io/neosmemo/memos
-              tag: 26.11.1
+              tag: 26.11.2
             env:
               TZ: Europe/Brussels
               # Needed for SSO callbacks and share links
