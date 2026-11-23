@@ -1,7 +1,7 @@
 ---
 # Prometheus exporters for the media apps: queues, missing/wanted items, indexer health,
-# download speeds. Separate pods rather than sidecars, so a missing API key only breaks
-# the exporter and never the app itself.
+# download speeds, Jellyfin sessions and transcodes. Separate pods rather than sidecars,
+# so a missing API key only breaks the exporter and never the app itself.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -115,6 +115,26 @@ spec:
               readiness: *qbtProbe
             securityContext: *securityContext
             resources: *resources
+      jellyfin-exporter:
+        containers:
+          app:
+            image:
+              repository: docker.io/rebelcore/jellyfin-exporter
+              tag: v1.6.0
+            args:
+              # On top of the defaults (media, playing, system, users). activity needs the
+              # Playback Reporting plugin, so it stays off.
+              - --collector.storage
+              - --collector.tasks
+              - --collector.transcoding
+            env:
+              JELLYFIN_ADDRESS: http://jellyfin.media.svc.cluster.local:8096
+            # JELLYFIN_TOKEN, from ./externalsecret.yaml
+            envFrom:
+              - secretRef:
+                  name: jellyfin-exporter-secret
+            securityContext: *securityContext
+            resources: *resources
     service:
       sonarr-exporter: &service
         controller: sonarr-exporter
@@ -138,6 +158,11 @@ spec:
         ports:
           metrics:
             port: *qbtPort
+      jellyfin-exporter:
+        controller: jellyfin-exporter
+        ports:
+          metrics:
+            port: 9594
     serviceMonitor:
       sonarr-exporter: &serviceMonitor
         service:
@@ -166,4 +191,8 @@ spec:
       qbittorrent-exporter:
         service:
           identifier: qbittorrent-exporter
+        endpoints: *endpoints
+      jellyfin-exporter:
+        service:
+          identifier: jellyfin-exporter
         endpoints: *endpoints
