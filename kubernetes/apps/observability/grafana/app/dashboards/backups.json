@@ -324,7 +324,7 @@
         "type": "prometheus",
         "uid": "mimir"
       },
-      "description": "CNPG clusters backing up to S3 via barman-cloud.",
+      "description": "CNPG clusters with at least one Backup object.",
       "gridPos": {
         "h": 4,
         "w": 3,
@@ -337,7 +337,7 @@
             "type": "prometheus",
             "uid": "mimir"
           },
-          "expr": "count(barman_cloud_cloudnative_pg_io_last_available_backup_timestamp)",
+          "expr": "count(max by (namespace, db) (label_replace(cnpg_backup_created_timestamp_seconds{phase=\"completed\"}, \"db\", \"$1\", \"cluster\", \"(.*)\")) or max by (namespace, db) (label_replace(cnpg_backup_created_timestamp_seconds{phase=\"failed\"}, \"db\", \"$1\", \"cluster\", \"(.*)\")))",
           "legendFormat": "__auto",
           "refId": "A"
         }
@@ -399,7 +399,7 @@
             "type": "prometheus",
             "uid": "mimir"
           },
-          "expr": "count(barman_cloud_cloudnative_pg_io_last_failed_backup_timestamp > barman_cloud_cloudnative_pg_io_last_available_backup_timestamp) or vector(0)",
+          "expr": "count((max by (namespace, db) (label_replace(cnpg_backup_created_timestamp_seconds{phase=\"failed\"}, \"db\", \"$1\", \"cluster\", \"(.*)\")) > max by (namespace, db) (label_replace(cnpg_backup_created_timestamp_seconds{phase=\"completed\"}, \"db\", \"$1\", \"cluster\", \"(.*)\"))) or (max by (namespace, db) (label_replace(cnpg_backup_created_timestamp_seconds{phase=\"failed\"}, \"db\", \"$1\", \"cluster\", \"(.*)\")) unless max by (namespace, db) (label_replace(cnpg_backup_created_timestamp_seconds{phase=\"completed\"}, \"db\", \"$1\", \"cluster\", \"(.*)\")))) or vector(0)",
           "legendFormat": "__auto",
           "refId": "A"
         }
@@ -465,7 +465,7 @@
             "type": "prometheus",
             "uid": "mimir"
           },
-          "expr": "time() - min(barman_cloud_cloudnative_pg_io_last_available_backup_timestamp)",
+          "expr": "time() - min(max by (namespace, db) (label_replace(cnpg_backup_created_timestamp_seconds{phase=\"completed\"}, \"db\", \"$1\", \"cluster\", \"(.*)\")))",
           "legendFormat": "__auto",
           "refId": "A"
         }
@@ -1020,88 +1020,6 @@
       }
     },
     {
-      "type": "state-timeline",
-      "title": "Sync state history",
-      "id": 13,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "mimir"
-      },
-      "description": "",
-      "gridPos": {
-        "h": 10,
-        "w": 24,
-        "x": 0,
-        "y": 19
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "mimir"
-          },
-          "expr": "max by (namespace, app) (label_replace(label_replace(volsync_volume_out_of_sync{role=\"source\"}, \"app\", \"$1\", \"obj_name\", \"(.*)\"), \"namespace\", \"$1\", \"obj_namespace\", \"(.*)\"))",
-          "legendFormat": "{{namespace}}/{{app}}",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#73BF69",
-                "value": null
-              },
-              {
-                "color": "#F2495C",
-                "value": 1
-              }
-            ]
-          },
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": {
-                  "text": "In sync",
-                  "color": "#73BF69",
-                  "index": 0
-                },
-                "1": {
-                  "text": "Out of sync",
-                  "color": "#F2495C",
-                  "index": 1
-                }
-              }
-            }
-          ],
-          "custom": {
-            "fillOpacity": 80,
-            "lineWidth": 0
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "showValue": "never",
-        "mergeValues": true,
-        "alignValue": "left",
-        "rowHeight": 0.8,
-        "legend": {
-          "showLegend": false
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      }
-    },
-    {
       "type": "row",
       "title": "Database backups (CNPG barman-cloud \u2192 S3)",
       "id": 14,
@@ -1110,7 +1028,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 29
+        "y": 19
       },
       "panels": []
     },
@@ -1127,7 +1045,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 30
+        "y": 20
       },
       "targets": [
         {
@@ -1135,7 +1053,7 @@
             "type": "prometheus",
             "uid": "mimir"
           },
-          "expr": "max by (namespace, db) (label_replace(time() - barman_cloud_cloudnative_pg_io_last_available_backup_timestamp, \"db\", \"$2\", \"job\", \"(.*)/(.*)\"))",
+          "expr": "time() - max by (namespace, db) (label_replace(cnpg_backup_created_timestamp_seconds{phase=\"completed\"}, \"db\", \"$1\", \"cluster\", \"(.*)\"))",
           "legendFormat": "__auto",
           "refId": "A",
           "instant": true,
@@ -1147,7 +1065,7 @@
             "type": "prometheus",
             "uid": "mimir"
           },
-          "expr": "max by (namespace, db) (label_replace(barman_cloud_cloudnative_pg_io_last_failed_backup_timestamp > bool barman_cloud_cloudnative_pg_io_last_available_backup_timestamp, \"db\", \"$2\", \"job\", \"(.*)/(.*)\"))",
+          "expr": "(max by (namespace, db) (label_replace(cnpg_backup_created_timestamp_seconds{phase=\"failed\"}, \"db\", \"$1\", \"cluster\", \"(.*)\")) > bool max by (namespace, db) (label_replace(cnpg_backup_created_timestamp_seconds{phase=\"completed\"}, \"db\", \"$1\", \"cluster\", \"(.*)\"))) or ((max by (namespace, db) (label_replace(cnpg_backup_created_timestamp_seconds{phase=\"failed\"}, \"db\", \"$1\", \"cluster\", \"(.*)\")) unless max by (namespace, db) (label_replace(cnpg_backup_created_timestamp_seconds{phase=\"completed\"}, \"db\", \"$1\", \"cluster\", \"(.*)\"))) * 0 + 1) or (max by (namespace, db) (label_replace(cnpg_backup_created_timestamp_seconds{phase=\"completed\"}, \"db\", \"$1\", \"cluster\", \"(.*)\")) * 0)",
           "legendFormat": "__auto",
           "refId": "B",
           "instant": true,
@@ -1159,7 +1077,7 @@
             "type": "prometheus",
             "uid": "mimir"
           },
-          "expr": "max by (namespace, db) (label_replace(time() - barman_cloud_cloudnative_pg_io_last_failed_backup_timestamp, \"db\", \"$2\", \"job\", \"(.*)/(.*)\"))",
+          "expr": "time() - max by (namespace, db) (label_replace(cnpg_backup_created_timestamp_seconds{phase=\"failed\"}, \"db\", \"$1\", \"cluster\", \"(.*)\"))",
           "legendFormat": "__auto",
           "refId": "C",
           "instant": true,
@@ -1217,7 +1135,7 @@
             "renameByName": {
               "namespace": "Namespace",
               "db": "Cluster",
-              "Value #A": "Last backup",
+              "Value #A": "Last successful backup",
               "Value #B": "Status",
               "Value #C": "Last failure",
               "Value #D": "Recovery window",
@@ -1231,7 +1149,7 @@
           "options": {
             "sort": [
               {
-                "field": "Last backup",
+                "field": "Last successful backup",
                 "desc": true
               }
             ]
@@ -1251,7 +1169,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Last backup"
+              "options": "Last successful backup"
             },
             "properties": [
               {
@@ -1446,7 +1364,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 37
+        "y": 27
       },
       "targets": [
         {
@@ -1454,7 +1372,7 @@
             "type": "prometheus",
             "uid": "mimir"
           },
-          "expr": "max by (namespace, db) (label_replace(time() - barman_cloud_cloudnative_pg_io_last_available_backup_timestamp, \"db\", \"$2\", \"job\", \"(.*)/(.*)\"))",
+          "expr": "time() - max by (namespace, db) (label_replace(cnpg_backup_created_timestamp_seconds{phase=\"completed\"}, \"db\", \"$1\", \"cluster\", \"(.*)\"))",
           "legendFormat": "{{namespace}}/{{db}}",
           "refId": "A"
         }
@@ -1527,7 +1445,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 37
+        "y": 27
       },
       "targets": [
         {
@@ -1588,6 +1506,110 @@
         "tooltip": {
           "mode": "multi",
           "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "row",
+      "title": "Sync state history",
+      "id": 18,
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 35
+      },
+      "panels": []
+    },
+    {
+      "type": "state-timeline",
+      "title": "Sync state history",
+      "id": 13,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mimir"
+      },
+      "description": "Volumes: VolSync out-of-sync flag. Databases (db): red when the last backup attempt failed or the last successful backup is older than 26h.",
+      "gridPos": {
+        "h": 24,
+        "w": 24,
+        "x": 0,
+        "y": 36
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "max by (namespace, app) (label_replace(label_replace(volsync_volume_out_of_sync{role=\"source\"}, \"app\", \"$1\", \"obj_name\", \"(.*)\"), \"namespace\", \"$1\", \"obj_namespace\", \"(.*)\"))",
+          "legendFormat": "{{namespace}}/{{app}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "max by (namespace, db) (label_replace(time() - max by (namespace, db) (label_replace(cnpg_backup_created_timestamp_seconds{phase=\"completed\"}, \"db\", \"$1\", \"cluster\", \"(.*)\")) > bool 93600, \"src\", \"age\", \"\", \"\") or label_replace((max by (namespace, db) (label_replace(cnpg_backup_created_timestamp_seconds{phase=\"failed\"}, \"db\", \"$1\", \"cluster\", \"(.*)\")) > bool max by (namespace, db) (label_replace(cnpg_backup_created_timestamp_seconds{phase=\"completed\"}, \"db\", \"$1\", \"cluster\", \"(.*)\"))) or ((max by (namespace, db) (label_replace(cnpg_backup_created_timestamp_seconds{phase=\"failed\"}, \"db\", \"$1\", \"cluster\", \"(.*)\")) unless max by (namespace, db) (label_replace(cnpg_backup_created_timestamp_seconds{phase=\"completed\"}, \"db\", \"$1\", \"cluster\", \"(.*)\"))) * 0 + 1) or (max by (namespace, db) (label_replace(cnpg_backup_created_timestamp_seconds{phase=\"completed\"}, \"db\", \"$1\", \"cluster\", \"(.*)\")) * 0), \"src\", \"failed\", \"\", \"\"))",
+          "legendFormat": "{{namespace}}/{{db}} (db)",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#73BF69",
+                "value": null
+              },
+              {
+                "color": "#F2495C",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "In sync",
+                  "color": "#73BF69",
+                  "index": 0
+                },
+                "1": {
+                  "text": "Out of sync",
+                  "color": "#F2495C",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showValue": "never",
+        "mergeValues": true,
+        "alignValue": "left",
+        "rowHeight": 0.8,
+        "legend": {
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
         }
       }
     }

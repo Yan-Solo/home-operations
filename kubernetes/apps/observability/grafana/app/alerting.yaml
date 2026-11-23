@@ -158,8 +158,8 @@ data:
             labels:
               severity: warning
             annotations:
-              subject: '{{ .Labels.job }}'
-              summary: 'Last base backup of {{ .Labels.job }} failed'
+              subject: '{{ .Labels.namespace }}/{{ .Labels.db }}'
+              summary: 'Last base backup of {{ .Labels.namespace }}/{{ .Labels.db }} failed'
               description: 'The most recent barman-cloud backup failed: kubectl get backups.postgresql.cnpg.io -n {{ .Labels.namespace }}'
               # "Databases" table
               __dashboardUid__: backups
@@ -171,7 +171,7 @@ data:
                 model:
                   refId: A
                   instant: true
-                  expr: 'max by (namespace, job) (barman_cloud_cloudnative_pg_io_last_failed_backup_timestamp > barman_cloud_cloudnative_pg_io_last_available_backup_timestamp)'
+                  expr: '(max by (namespace, db) (label_replace(cnpg_backup_created_timestamp_seconds{phase="failed"}, "db", "$1", "cluster", "(.*)")) > max by (namespace, db) (label_replace(cnpg_backup_created_timestamp_seconds{phase="completed"}, "db", "$1", "cluster", "(.*)"))) or (max by (namespace, db) (label_replace(cnpg_backup_created_timestamp_seconds{phase="failed"}, "db", "$1", "cluster", "(.*)")) unless max by (namespace, db) (label_replace(cnpg_backup_created_timestamp_seconds{phase="completed"}, "db", "$1", "cluster", "(.*)")))'
               - *threshold
 
           - uid: backup-database-stale
@@ -183,9 +183,9 @@ data:
             labels:
               severity: critical
             annotations:
-              subject: '{{ .Labels.job }}'
-              summary: '{{ .Labels.job }} has no base backup for {{ with .Values.A }}{{ humanizeDuration .Value }}{{ else }}over 26h{{ end }}'
-              description: 'No successful barman-cloud base backup in over 26h.'
+              subject: '{{ .Labels.namespace }}/{{ .Labels.db }}'
+              summary: '{{ .Labels.namespace }}/{{ .Labels.db }} has no base backup for {{ with .Values.A }}{{ humanizeDuration .Value }}{{ else }}over 26h{{ end }}'
+              description: 'No completed CNPG base backup in over 26h.'
               __dashboardUid__: backups
               __panelId__: '15'
             data:
@@ -195,7 +195,7 @@ data:
                 model:
                   refId: A
                   instant: true
-                  expr: 'time() - max by (namespace, job) (barman_cloud_cloudnative_pg_io_last_available_backup_timestamp) > 93600'
+                  expr: 'time() - max by (namespace, db) (label_replace(cnpg_backup_created_timestamp_seconds{phase="completed"}, "db", "$1", "cluster", "(.*)")) > 93600'
               - *threshold
 
           - uid: backup-wal-archiving-failing
@@ -233,7 +233,7 @@ data:
             annotations:
               subject: 'Backup monitoring'
               summary: 'Backup metrics are missing, so the other backup alerts cannot fire'
-              description: 'Check kube-state-metrics (VolSync) and the CNPG barman-cloud plugin metrics.'
+              description: 'Check kube-state-metrics (VolSync ReplicationSources and CNPG Backups).'
               __dashboardUid__: backups
               __panelId__: '11'
             data:
@@ -243,5 +243,5 @@ data:
                 model:
                   refId: A
                   instant: true
-                  expr: 'absent(volsync_replicationsource_last_sync_timestamp_seconds) or absent(barman_cloud_cloudnative_pg_io_last_available_backup_timestamp)'
+                  expr: 'absent(volsync_replicationsource_last_sync_timestamp_seconds) or absent(cnpg_backup_created_timestamp_seconds)'
               - *threshold

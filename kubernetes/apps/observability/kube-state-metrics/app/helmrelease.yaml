@@ -25,6 +25,9 @@ spec:
         - apiGroups: ["volsync.backube"]
           resources: ["replicationsources"]
           verbs: ["list", "watch"]
+        - apiGroups: ["postgresql.cnpg.io"]
+          resources: ["backups"]
+          verbs: ["list", "watch"]
     customResourceState:
       enabled: true
       config:
@@ -60,3 +63,23 @@ spec:
                       labelName: result
                       path: [status, latestMoverStatus, result]
                       list: [Successful, Failed]
+            # The barman-cloud plugin's last_available_backup_timestamp also counts a base backup
+            # whose upload failed (seen 2026-11-23 on n8n), so judge backups by the CNPG Backup
+            # objects instead: one series per Backup with its phase (completed/failed/running).
+            - groupVersionKind:
+                group: postgresql.cnpg.io
+                version: v1
+                kind: Backup
+              metricNamePrefix: cnpg_backup
+              labelsFromPath:
+                name: [metadata, name]
+                namespace: [metadata, namespace]
+                cluster: [spec, cluster, name]
+                phase: [status, phase]
+              metrics:
+                - name: created_timestamp_seconds
+                  help: When the backup attempt started
+                  each:
+                    type: Gauge
+                    gauge:
+                      path: [metadata, creationTimestamp]
