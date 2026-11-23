@@ -41,6 +41,11 @@ spec:
         value: when_required
       - name: AWS_DEFAULT_REGION
         value: ${S3_REGION}
+      # B2 sometimes drops connections mid-upload: retry longer, with backoff
+      - name: AWS_RETRY_MODE
+        value: adaptive
+      - name: AWS_MAX_ATTEMPTS
+        value: "10"
   configuration:
     destinationPath: s3://${S3_BUCKET}/cnpg/barpath
     endpointURL: ${S3_ENDPOINT}
@@ -55,6 +60,7 @@ spec:
       compression: gzip
     data:
       compression: gzip
+      jobs: 1 # upload parts one at a time (fewer parallel connections to B2)
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
