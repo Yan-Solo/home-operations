@@ -49,6 +49,13 @@ ruler_storage:
   filesystem:
     dir: /data/rules
 
+# The query-frontend splits each range query per day (24h) and into N shards, so one
+# 7-day panel already queues ~8 x shards sub-queries. With the default queue limit of
+# 100, a dashboard refresh overflowed it and panels failed with 429 "too many
+# outstanding requests".
+query_scheduler:
+  max_outstanding_requests_per_tenant: 1000
+
 store_gateway:
   sharding_ring:
     replication_factor: 1
@@ -59,3 +66,6 @@ limits:
   ingestion_rate: 100000
   ingestion_burst_size: 1000000
   max_label_names_per_series: 50
+  # Default 16 shards is sized for a fleet of queriers; this single instance runs
+  # 8 queries at a time, so 16 shards only multiplies the queue length.
+  query_sharding_total_shards: 4
