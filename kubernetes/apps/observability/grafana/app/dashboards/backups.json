@@ -1040,7 +1040,7 @@
         "type": "prometheus",
         "uid": "mimir"
       },
-      "description": "Recovery window: how far back you can restore to (oldest backup still kept by the 30d retention).",
+      "description": "Recovery window: how far back you can restore to (oldest backup still kept by the 30d retention). WAL backlog: WAL segments waiting to be shipped to S3. 0-1 is normal; a growing number means archiving is stuck.",
       "gridPos": {
         "h": 7,
         "w": 24,
@@ -1101,7 +1101,7 @@
             "type": "prometheus",
             "uid": "mimir"
           },
-          "expr": "max by (namespace, db) (label_replace(cnpg_pg_stat_archiver_seconds_since_last_archival, \"db\", \"$2\", \"job\", \"(.*)/(.*)\"))",
+          "expr": "max by (namespace, db) (label_replace(cnpg_collector_pg_wal_archive_status{value=\"ready\"}, \"db\", \"$2\", \"job\", \"(.*)/(.*)\"))",
           "legendFormat": "__auto",
           "refId": "E",
           "instant": true,
@@ -1139,7 +1139,7 @@
               "Value #B": "Status",
               "Value #C": "Last failure",
               "Value #D": "Recovery window",
-              "Value #E": "WAL lag",
+              "Value #E": "WAL backlog",
               "Value #F": "WAL failures (24h)"
             }
           }
@@ -1295,12 +1295,45 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "WAL lag"
+              "options": "WAL backlog"
             },
             "properties": [
               {
                 "id": "unit",
-                "value": "s"
+                "value": "short"
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#73BF69",
+                      "value": null
+                    },
+                    {
+                      "color": "#FF9830",
+                      "value": 2
+                    },
+                    {
+                      "color": "#F2495C",
+                      "value": 5
+                    }
+                  ]
+                }
               }
             ]
           },
@@ -1440,7 +1473,7 @@
         "type": "prometheus",
         "uid": "mimir"
       },
-      "description": "Should be flat at 0. WAL lag (in the table) is informational: it only grows on quiet databases.",
+      "description": "Should be flat at 0. If failures persist, WAL backlog (in the table) will grow.",
       "gridPos": {
         "h": 8,
         "w": 12,
