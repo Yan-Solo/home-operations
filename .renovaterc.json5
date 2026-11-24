@@ -23,24 +23,8 @@
   },
   packageRules: [
     {
-      description: "Automerge patch updates of everything once CI is green",
-      matchUpdateTypes: ["patch", "digest"],
-      matchCurrentVersion: "!/^0/",
-      automerge: true,
-      automergeType: "pr",
-      ignoreTests: false,
-    },
-    {
-      description: "Apps and the monitoring stack also automerge minor updates; infrastructure minors (Cilium, Envoy Gateway, CNPG, ...) wait for review",
-      matchFileNames: [
-        "kubernetes/apps/ai/**",
-        "kubernetes/apps/media/**",
-        "kubernetes/apps/home-automation/**",
-        "kubernetes/apps/apps/**",
-        "kubernetes/apps/security/**",
-        "kubernetes/apps/observability/**",
-      ],
-      matchUpdateTypes: ["minor"],
+      description: "Automerge minor, patch and digest updates of everything once CI is green (0.x is excluded: there a minor bump may break)",
+      matchUpdateTypes: ["minor", "patch", "digest"],
       matchCurrentVersion: "!/^0/",
       automerge: true,
       automergeType: "pr",
