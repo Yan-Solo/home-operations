@@ -43,6 +43,16 @@ spec:
                 name: [metadata, name]
                 namespace: [metadata, namespace]
               metrics:
+                # One series per existing ReplicationSource. VolSync's own controller metrics
+                # (volsync_volume_out_of_sync, volsync_missed_intervals_total) are never removed
+                # when a ReplicationSource is deleted, so the dashboard joins them against this.
+                - name: info
+                  help: Exists while the ReplicationSource exists
+                  each:
+                    type: Info
+                    info:
+                      labelsFromPath:
+                        uid: [metadata, uid]
                 - name: last_sync_timestamp_seconds
                   help: When the last backup finished successfully
                   each:

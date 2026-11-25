@@ -72,7 +72,7 @@
             "type": "prometheus",
             "uid": "mimir"
           },
-          "expr": "count(volsync_volume_out_of_sync{role=\"source\"})",
+          "expr": "count(volsync_replicationsource_info)",
           "legendFormat": "__auto",
           "refId": "A"
         }
@@ -200,7 +200,7 @@
             "type": "prometheus",
             "uid": "mimir"
           },
-          "expr": "sum(volsync_volume_out_of_sync{role=\"source\"})",
+          "expr": "sum(max by (namespace, app) (label_replace(label_replace(volsync_volume_out_of_sync{role=\"source\"}, \"app\", \"$1\", \"obj_name\", \"(.*)\"), \"namespace\", \"$1\", \"obj_namespace\", \"(.*)\")) and on(namespace, app) label_replace(volsync_replicationsource_info, \"app\", \"$1\", \"name\", \"(.*)\")) or vector(0)",
           "legendFormat": "__auto",
           "refId": "A"
         }
@@ -640,7 +640,7 @@
             "type": "prometheus",
             "uid": "mimir"
           },
-          "expr": "max by (namespace, app) (label_replace(label_replace(volsync_volume_out_of_sync{role=\"source\"}, \"app\", \"$1\", \"obj_name\", \"(.*)\"), \"namespace\", \"$1\", \"obj_namespace\", \"(.*)\"))",
+          "expr": "max by (namespace, app) (label_replace(label_replace(volsync_volume_out_of_sync{role=\"source\"}, \"app\", \"$1\", \"obj_name\", \"(.*)\"), \"namespace\", \"$1\", \"obj_namespace\", \"(.*)\")) and on(namespace, app) label_replace(volsync_replicationsource_info, \"app\", \"$1\", \"name\", \"(.*)\")",
           "legendFormat": "__auto",
           "refId": "C",
           "instant": true,
@@ -652,7 +652,7 @@
             "type": "prometheus",
             "uid": "mimir"
           },
-          "expr": "max by (namespace, app) (label_replace(label_replace(round(increase(volsync_missed_intervals_total{role=\"source\"}[7d])) and volsync_missed_intervals_total{role=\"source\"}, \"app\", \"$1\", \"obj_name\", \"(.*)\"), \"namespace\", \"$1\", \"obj_namespace\", \"(.*)\"))",
+          "expr": "max by (namespace, app) (label_replace(label_replace(round(increase(volsync_missed_intervals_total{role=\"source\"}[7d])) and volsync_missed_intervals_total{role=\"source\"}, \"app\", \"$1\", \"obj_name\", \"(.*)\"), \"namespace\", \"$1\", \"obj_namespace\", \"(.*)\")) and on(namespace, app) label_replace(volsync_replicationsource_info, \"app\", \"$1\", \"name\", \"(.*)\")",
           "legendFormat": "__auto",
           "refId": "D",
           "instant": true,
@@ -1555,7 +1555,7 @@
             "type": "prometheus",
             "uid": "mimir"
           },
-          "expr": "max by (namespace, app) (label_replace(label_replace(volsync_volume_out_of_sync{role=\"source\"}, \"app\", \"$1\", \"obj_name\", \"(.*)\"), \"namespace\", \"$1\", \"obj_namespace\", \"(.*)\"))",
+          "expr": "max by (namespace, app) (label_replace(label_replace(volsync_volume_out_of_sync{role=\"source\"}, \"app\", \"$1\", \"obj_name\", \"(.*)\"), \"namespace\", \"$1\", \"obj_namespace\", \"(.*)\")) and on(namespace, app) label_replace(volsync_replicationsource_info, \"app\", \"$1\", \"name\", \"(.*)\")",
           "legendFormat": "{{namespace}}/{{app}}",
           "refId": "A"
         },
