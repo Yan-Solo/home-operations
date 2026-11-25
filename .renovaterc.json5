@@ -6,7 +6,9 @@
     ":semanticCommits",
     ":timezone(Europe/Brussels)",
   ],
-  dependencyDashboardTitle: "Renovate Dashboard",
+  dependencyDashboard: {
+    title: "Renovate Dashboard",
+  },
   ignorePaths: ["**/archive/**"],
   flux: {
     managerFilePatterns: ["/kubernetes/.+\\.ya?ml$/"],
