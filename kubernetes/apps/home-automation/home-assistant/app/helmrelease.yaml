@@ -76,3 +76,7 @@ spec:
           - path: /config/tts
       tmp:
         type: emptyDir
+      media:
+        existingClaim: media
+        globalMounts
+         - path: /media-dummy
