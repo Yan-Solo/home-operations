@@ -21,11 +21,23 @@
   kubernetes: {
     managerFilePatterns: ["/kubernetes/.+\\.ya?ml$/"],
   },
+  // Without this, automerge forces rebaseWhen=behind-base-branch: Renovate then merges only one PR
+  // per run (each merge puts the others behind main) and the PRs pile up. Version bumps touch one
+  // line, so CI on a slightly older main is fine. PRs still get rebased when they conflict.
+  rebaseWhen: "conflicted",
   packageRules: [
     {
       description: "Automerge minor, patch and digest updates of everything once CI is green (0.x is excluded: there a minor bump may break)",
       matchUpdateTypes: ["minor", "patch", "digest"],
-      matchCurrentVersion: "!/^0/",
+      matchCurrentVersion: "!/^v?0/",
+      automerge: true,
+      automergeType: "pr",
+      ignoreTests: false,
+    },
+    {
+      description: "0.x patch updates are safe to automerge too",
+      matchUpdateTypes: ["patch"],
+      matchCurrentVersion: "/^v?0/",
       automerge: true,
       automergeType: "pr",
       ignoreTests: false,
