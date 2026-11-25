@@ -78,5 +78,5 @@ spec:
         type: emptyDir
       media:
         existingClaim: media
-        globalMounts
+        globalMounts:
          - path: /media-dummy
