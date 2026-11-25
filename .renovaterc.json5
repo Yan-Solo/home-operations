@@ -55,6 +55,9 @@
       description: "talosctl (.mise.toml) moves with the cluster's Talos version (talos/talenv.yaml)",
       matchPackageNames: ["/siderolabs/talos/", "/siderolabs/installer/"],
       groupName: "talos",
+      // The talosFactory preset splits patch from minor for the cluster version (upgrades must step
+      // through each minor's latest patch); do the same for talosctl so both land in one PR.
+      separateMinorPatch: true,
     },
     {
       description: "kubectl (.mise.toml) moves with the cluster's Kubernetes version (talos/talenv.yaml)",
