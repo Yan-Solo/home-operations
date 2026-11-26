@@ -44,6 +44,15 @@ spec:
 
     server:
       enabled: true
+      service:
+        main:
+          # Direct LAN address for the Immich app on home Wi-Fi. immich.sunnyvale.be goes
+          # through Cloudflare, which rejects uploads over 100 MB (most iPhone videos). Set
+          # http://192.168.0.62:2283 as the local URL under Settings > Networking >
+          # Automatic URL switching in the app.
+          type: LoadBalancer
+          annotations:
+            lbipam.cilium.io/ips: 192.168.0.62
       route:
         main:
           enabled: true
